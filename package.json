@@ -1,0 +1,23 @@
+{
+  "name": "alice-bot",
+  "version": "1.0.0",
+  "description": "discord management bot",
+  "main": "index.ts",
+  "scripts": {
+    "build-ts": "tsc",
+    "watch-ts": "tsc -w",
+    "dev": "ts-node src/index.ts",
+    "start": "nodemon ./dist/src/index.js"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "alice"
+  ],
+  "author": "Daquaris Chadwick",
+  "license": "ISC",
+  "dependencies": {
+    "@types/node": "^13.13.4",
+    "discord.js": "^12.2.0"
+  }
+}
