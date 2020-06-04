@@ -36,6 +36,7 @@ commandBus.addHiddenCommand('graduate', new GraduateCommand);
 commandBus.addPublicCommand('assign', new AssignCommand);
 commandBus.addPublicCommand('greet', new GreetCommand);
 commandBus.addPublicCommand('promote', new PromoteCommand);
+commandBus.addPublicCommand('contest', new ContestCommand);
 
 
 export {commandBus as CommandBus}
