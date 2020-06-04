@@ -38,5 +38,4 @@ commandBus.addPublicCommand('greet', new GreetCommand);
 commandBus.addPublicCommand('promote', new PromoteCommand);
 commandBus.addPublicCommand('contest', new ContestCommand);
 
-
 export {commandBus as CommandBus}

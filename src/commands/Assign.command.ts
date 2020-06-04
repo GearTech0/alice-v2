@@ -48,11 +48,11 @@ export default class AssignCommand extends Command {
 
                 // Graduates cannot become students
                 if (this.checkAdmin(member)) {
-                    message.reply("graduates cannot become students. If you think this is an error, please contact an admin.")
+                    message.reply("You are not allowed to use this command. If you think this is an error, please contact an admin.")
                     continue;
                 }
 
-                if (role.name.toLowerCase() !== 'Server Owner' && role.name.toLowerCase() !== 'Moderator') {
+                if (role.name !== 'Server Owner' && role.name !== 'Moderator') {
                     addedRoles.push(role);
                     newRoles.push(role);
                 } else {
