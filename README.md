@@ -12,7 +12,7 @@ npm install -g ts-node
 
 After installing `ts-node`:
 ```
-npm run-script run-script dev
+npm run-script dev
 ```
 You should see the code start with a response like:
 ```
