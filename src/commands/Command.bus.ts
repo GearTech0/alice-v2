@@ -37,5 +37,4 @@ commandBus.addPublicCommand('assign', new AssignCommand);
 commandBus.addPublicCommand('greet', new GreetCommand);
 commandBus.addPublicCommand('promote', new PromoteCommand);
 
-
 export {commandBus as CommandBus}
