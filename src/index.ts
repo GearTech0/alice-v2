@@ -23,4 +23,13 @@ bot.on('message', (oMessage) => {
     }
 });
 
-bot.login(auth.token);
+if (process.argv[2] === "dev") {
+    try {
+        bot.login(auth.tokendev);
+    } catch (e) {
+        console.error("Invalid develop authentication token");
+        bot.login(auth.token);
+    }
+} else {
+    bot.login(auth.token);
+}

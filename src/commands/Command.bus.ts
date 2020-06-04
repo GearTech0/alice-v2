@@ -23,8 +23,10 @@ class CommandBus {
         try {
             this.all[commandName].action(args, message);
         } catch (e) {
-            console.log(e);
-            message.reply(`The command: { ${commandName} } is unavailable.`)
+            if (!e.message.includes("Cannot read property 'action' of undefined")) {
+                console.log(e);
+            }
+            message.reply(`The command: { ${commandName} } is unavailable.`);
         }
     }
 }
