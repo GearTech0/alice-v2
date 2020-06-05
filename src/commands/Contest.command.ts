@@ -2,6 +2,7 @@ import Command from "./Command";
 import { Message } from "discord.js";
 import drive from "googleapis";
 import fs from "fs";
+import path from "path";
 import { dataflow } from "googleapis/build/src/apis/dataflow";
 
 export default class ContestCommand extends Command {
@@ -45,7 +46,18 @@ export default class ContestCommand extends Command {
   
   //add vote to selected file in running Contest
   public vote(args: Array<string>, message: Message): void{
-    
+    if(false)/*add check for on going contest*/{return}
+    let votes = import("../../votes.json");
+    console.log("votes loaded")
+    const user = message.member.user.id;
+    const vote = args[0];
+    if( !((parseInt(vote) <= 5) && (parseInt(vote) > 0) ) ) {message.reply("Invalid vote. Usage: !Contest vote {1-5}"); return}
+    votes[user] = vote;
+    console.log(votes[user]);
+    console.log(JSON.stringify(votes));
+    fs.writeFileSync(path.join(__dirname,"../../votes.json"),JSON.stringify(votes),{ flag: 'w' });
+    message.reply("Vote Accepted");
+    return;
   }
 
   //tally vote and announce winner of Contest
@@ -59,10 +71,12 @@ export default class ContestCommand extends Command {
     return;
   }
 
+
   public test(args: Array<string>, message: Message): void{ //remove on production
       console.log("Testing JSON import: ");
       return;
   }
+
 
   public action(args: Array<string>, message: Message): void{
     
