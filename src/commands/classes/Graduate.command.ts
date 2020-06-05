@@ -9,7 +9,7 @@ export default class GraduateCommand extends Command {
         const guild = message.guild;
         const roles = member.roles;
 
-        if (this.checkAdmin(member)) return;
+        if (this.isUnauthorized(member)) return;
 
         const guildRoles = guild.roles;
         let rolesCache = {};

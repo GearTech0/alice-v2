@@ -2,7 +2,8 @@ import Command from "./Command";
 import { Message } from "discord.js";
 import drive from "googleapis";
 import fs from "fs";
-import path from "path";
+import path from 'path';
+import validUrl from 'valid-url';
 import { dataflow } from "googleapis/build/src/apis/dataflow";
 
 export default class ContestCommand extends Command {
@@ -11,27 +12,31 @@ export default class ContestCommand extends Command {
   //initiate a contest, announcing it to channel and 
   //This should read through the google drive folder, and choose N sample files in the root folder and save choice somewhere to be used when viewing list
   //5 random samples from gdrive, added prior to starting
-  public async start(args: Array<string>, message: Message): Promise<void>{  
-    let obj = {name:"Entry File", webLink: "www.com"};
-
-    let files = [obj]//GDriveController.getFiles();
-    let contestEntries = [obj];
-    let pastEntrants = (await import("../../pastEntrants.json"));
-    console.log(pastEntrants[0]);
-    for (let x = 0; x < 5; x++) {
-      let id = Math.round(Math.random()*10000)%files.length;
-      while(false /*check if file name matches any within pastEntrants*/){
-        id = Math.round(Math.random()*10000)%files.length;
+  public async start(args: Array<string>, message: Message): Promise<void>{
+    try {
+      let obj = {name:"Entry File", webLink: "www.com"};
+  
+      let files = [obj]//GDriveController.getFiles();
+      let contestEntries = [obj];
+      let pastEntrants = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../pastEntrants.json")).toString());
+      console.log(pastEntrants[0]);
+      for (let x = 0; x < 5; x++) {
+        let id = Math.round(Math.random()*10000)%files.length;
+        while(false /*check if file name matches any within pastEntrants*/){
+          id = Math.round(Math.random()*10000)%files.length;
+        }
+  
+        contestEntries[x] = files[id];
       }
+      let announcement = "A contest has started! \nVote for your favourite with !Contest vote {entry number} \nEntrants: ";
+      for (let x in contestEntries) {
+        let y = parseInt(x);
+        announcement += '\n'+ [y+1] +': '+ contestEntries[y].name + '\n'+ contestEntries[y].webLink + '\n'; //
+      } 
+      message.reply(announcement);
+    }  catch (e) {
 
-      contestEntries[x] = files[id];
-    }
-    let announcement = "A contest has started! \nVote for your favourite with !Contest vote {entry number} \nEntrants: ";
-    for (let x in contestEntries) {
-      let y = parseInt(x);
-      announcement += '\n'+ [y+1] +': '+ contestEntries[y].name + '\n'+ contestEntries[y].webLink + '\n'; //
     } 
-    message.reply(announcement);
     //record entries
     return;
     
@@ -41,6 +46,29 @@ export default class ContestCommand extends Command {
   //can be added to at any time, sounds files to be stored in gdrive
   public add(args: Array<string>, message: Message): void{
     
+    let contestSamples = {samples: []};
+    
+    try {
+      //check that there is any previous data
+      let data = fs.readFileSync(path.join(__dirname, '../../../data/votingList.json'));
+      if (data) {
+        contestSamples = JSON.parse(data.toString());
+      }
+    } catch (e) {
+
+    } finally {
+      let url = args.join(' ');
+      if (validUrl.isUri(url)) {
+        contestSamples.samples.push(url);
+        fs.writeFileSync(path.join(__dirname, '../../../data/votingList.json'), JSON.stringify(contestSamples), { flag: 'w' });
+  
+        message.reply(`${url} has been added to the voting list. (◕‿◕✿)`)
+      } else {
+        message.reply('This is not a valid URL. Sorry. ༼☯﹏☯༽ \n\nIf you think this is an error, please let a Moderator or the Server Owner know.');
+        console.error(`ERROR: ${url} is not a valid url`);
+      }
+    }
+
   }
 
   

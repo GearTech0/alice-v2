@@ -4,7 +4,7 @@ export default abstract class Command {
     public name: string;
     public help: string;
 
-    protected checkAdmin(guildMember: GuildMember): boolean {
+    protected isUnauthorized(guildMember: GuildMember): boolean {
         const roles = guildMember.roles;
         let memberRolesCache = {};
         for (let role of roles.cache) {

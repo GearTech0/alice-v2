@@ -1,11 +1,13 @@
-import Command from './Command';
-import AssignCommand from './Assign.command';
+import Command from './classes/Command';
 import { Client, Message } from 'discord.js';
-import GraduateCommand from './Graduate.command';
-import GreetCommand from './Greet.command';
-import PromoteCommand from './Promote.command';
-import ContestCommand from './Contest.command';
-import ListCommand from './List.command';
+
+import AssignCommand from './classes/Assign.command';
+import GraduateCommand from './classes/Graduate.command';
+import GreetCommand from './classes/Greet.command';
+import PromoteCommand from './classes/Promote.command';
+import ListCommand from './classes/List.command';
+import UpdateCommand from './classes/Update.command';
+import ContestCommand from './classes/Contest.command';
 
 class CommandBus {
     public all: {[key: string]: Command} = {};
@@ -24,8 +26,10 @@ class CommandBus {
         try {
             this.all[commandName].action(args, message);
         } catch (e) {
-            console.log(e);
-            message.reply(`The command: { ${commandName} } is unavailable.`)
+            if (!e.message.includes("Cannot read property 'action' of undefined")) {
+                console.log(e);
+            }
+            message.reply(`The command: { ${commandName} } is unavailable.`);
         }
     }
 }
@@ -34,10 +38,11 @@ const commandBus = new CommandBus();
 
 commandBus.addHiddenCommand('commands', new ListCommand);
 commandBus.addHiddenCommand('graduate', new GraduateCommand);
+commandBus.addHiddenCommand('update', new UpdateCommand);
+
 commandBus.addPublicCommand('assign', new AssignCommand);
 commandBus.addPublicCommand('greet', new GreetCommand);
 commandBus.addPublicCommand('promote', new PromoteCommand);
 commandBus.addPublicCommand('contest', new ContestCommand);
-
 
 export {commandBus as CommandBus}
