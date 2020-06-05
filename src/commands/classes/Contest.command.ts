@@ -80,15 +80,17 @@ export default class ContestCommand extends Command {
     if(!args[0]){
       var voteList = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/votingList.json")).toString());
       var announcement = "Current Contest Entrants: ";
-      let cnt = [0,0,0,0,0];
-      console.log(votes);
+      let cnt = [];
+
       for(let vote in votes){
-        console.log(vote);
-        cnt[parseInt(votes[vote])] = (cnt[parseInt(votes[vote])]) ? cnt[parseInt(votes[vote])]+1 : 1;
+
+        cnt[parseInt(votes[vote])-1] = (cnt[parseInt(votes[vote])]-1) ? cnt[parseInt(votes[vote])-1]+1 : 1;
       }
+
       for(let x in voteList.samples){
         announcement += `\n${parseInt(x)+1}: ${voteList.samples[x]} | ${cnt[x]}`;
       } 
+
       message.reply(announcement);
       return;
     }
