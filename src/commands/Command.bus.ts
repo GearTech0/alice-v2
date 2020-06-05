@@ -5,6 +5,7 @@ import GraduateCommand from './Graduate.command';
 import GreetCommand from './Greet.command';
 import PromoteCommand from './Promote.command';
 import ListCommand from './List.command';
+import ContestCommand from './Contest.command';
 
 class CommandBus {
     public all: {[key: string]: Command} = {};
@@ -37,5 +38,6 @@ commandBus.addPublicCommand('assign', new AssignCommand);
 commandBus.addPublicCommand('greet', new GreetCommand);
 commandBus.addPublicCommand('promote', new PromoteCommand);
 commandBus.addPublicCommand('contest', new ContestCommand);
+
 
 export {commandBus as CommandBus}

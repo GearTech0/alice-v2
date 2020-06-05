@@ -15,13 +15,17 @@ export default class ContestCommand extends Command {
     
   }
 
-//add vote to selected file in running Contest
+  //add vote to selected file in running Contest
   public vote(args: Array<string>, message: Message): void{
     
   }
 
-//tally vote and announce winner of Contest
-  public end(args: Array<string>, message: Message): void{ //
+  public list(args: Array<string>, message: Message): void {
+
+  }
+
+  //tally vote and announce winner of Contest
+  public end(args: Array<string>, message: Message): void{
     
   }
 

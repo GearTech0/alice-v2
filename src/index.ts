@@ -1,6 +1,10 @@
 import * as Discord from 'discord.js';
-import auth from '../auth.json';
+import auth from '../secret/auth.json';
 import { CommandBus } from './commands/Command.bus';
+import Drive from './gdrive/Drive.gdrive';
+import OAuth from './gdrive/OAuth.gdrive'
+import { map, concatAll } from 'rxjs/operators';
+import { ReturnEnvelope } from './exports';
 
 var bot = new Discord.Client();
 
@@ -13,12 +17,9 @@ bot.on("ready", () => {
 bot.on('message', (oMessage) => {
     let message = oMessage.content;
     if (message.substring(0, 1) == '!') {
-        let args = message.substring(1).split(',');
-        let cmdAndArg = args[0].split(' ');
-        let cmd = cmdAndArg[0];
+        let args = message.split(' ');
+        let cmd = args.shift();
 
-        args = args.splice(1);
-        args.unshift(cmdAndArg.splice(1).join(" "));
         CommandBus.useCommand(cmd, args, oMessage);
     }
 });

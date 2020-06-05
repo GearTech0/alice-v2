@@ -10,7 +10,10 @@ npm install -g typescript
 npm install -g ts-node
 ```
 
-After installing `ts-node`:
+### Set up
+**Create** a secret
+
+### To run
 ```
 npm run-script run-script dev
 ```
