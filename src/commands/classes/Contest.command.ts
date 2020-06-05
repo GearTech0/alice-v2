@@ -88,7 +88,7 @@ export default class ContestCommand extends Command {
       }
 
       for(let x in voteList.samples){
-        announcement += `\n${parseInt(x)+1}: ${voteList.samples[x]} | ${cnt[x]}`;
+        announcement += `\n${parseInt(x)+1}: ${voteList.samples[x]} | ${(cnt[x]) ? cnt[x] : 'no votes'}`;
       } 
 
       message.reply(announcement);

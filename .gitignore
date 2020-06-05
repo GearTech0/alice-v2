@@ -5,3 +5,4 @@ dist/
 data/
 secret/*
 !secret/auth.template.json
+npm-debug.log
