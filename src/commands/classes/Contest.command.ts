@@ -18,7 +18,7 @@ export default class ContestCommand extends Command {
   
       let files = [obj]//GDriveController.getFiles();
       let contestEntries = [obj];
-      let pastEntrants = (await import("../../pastEntrants.json"));
+      let pastEntrants = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../pastEntrants.json")).toString());
       console.log(pastEntrants[0]);
       for (let x = 0; x < 5; x++) {
         let id = Math.round(Math.random()*10000)%files.length;
@@ -50,7 +50,7 @@ export default class ContestCommand extends Command {
     
     try {
       //check that there is any previous data
-      let data = fs.readFileSync(path.join(__dirname, '../../data/votingList.json'));
+      let data = fs.readFileSync(path.join(__dirname, '../../../data/votingList.json'));
       if (data) {
         contestSamples = JSON.parse(data.toString());
       }
@@ -60,7 +60,7 @@ export default class ContestCommand extends Command {
       let url = args.join(' ');
       if (validUrl.isUri(url)) {
         contestSamples.samples.push(url);
-        fs.writeFileSync(path.join(__dirname, '../../data/votingList.json'), JSON.stringify(contestSamples), { flag: 'w' });
+        fs.writeFileSync(path.join(__dirname, '../../../data/votingList.json'), JSON.stringify(contestSamples), { flag: 'w' });
   
         message.reply(`${url} has been added to the voting list. (◕‿◕✿)`)
       } else {
