@@ -18,7 +18,7 @@ export default class ContestCommand extends Command {
   
       let files = [obj]//GDriveController.getFiles();
       let contestEntries = [obj];
-      let pastEntrants = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../pastEntrants.json")).toString());
+      let pastEntrants = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/pastEntrants.json")).toString());
       console.log(pastEntrants[0]);
       for (let x = 0; x < 5; x++) {
         let id = Math.round(Math.random()*10000)%files.length;
@@ -75,15 +75,30 @@ export default class ContestCommand extends Command {
   //add vote to selected file in running Contest
   public vote(args: Array<string>, message: Message): void{
     if(false)/*add check for on going contest*/{return}
-    let votes = import("../../votes.json");
-    console.log("votes loaded")
+    console.log(args);
+    let votes = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/votes.json")).toString());
+    if(!args[0]){
+      var voteList = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/votingList.json")).toString());
+      var announcement = "Current Contest Entrants: ";
+      let cnt = [0,0,0,0,0];
+      console.log(votes);
+      for(let vote in votes){
+        console.log(vote);
+        cnt[parseInt(votes[vote])] = (cnt[parseInt(votes[vote])]) ? cnt[parseInt(votes[vote])]+1 : 1;
+      }
+      for(let x in voteList.samples){
+        announcement += `\n${parseInt(x)+1}: ${voteList.samples[x]} | ${cnt[x]}`;
+      } 
+      message.reply(announcement);
+      return;
+    }
     const user = message.member.user.id;
     const vote = args[0];
     if( !((parseInt(vote) <= 5) && (parseInt(vote) > 0) ) ) {message.reply("Invalid vote. Usage: !Contest vote {1-5}"); return}
     votes[user] = vote;
     console.log(votes[user]);
     console.log(JSON.stringify(votes));
-    fs.writeFileSync(path.join(__dirname,"../../votes.json"),JSON.stringify(votes),{ flag: 'w' });
+    fs.writeFileSync(path.join(__dirname,"../../../data/votes.json"),JSON.stringify(votes),{ flag: 'w' });
     message.reply("Vote Accepted");
     return;
   }
