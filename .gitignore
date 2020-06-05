@@ -4,4 +4,4 @@ node_modules/
 dist/
 data/
 secret/*
-secret/!auth.template.json
+!secret/auth.template.json
