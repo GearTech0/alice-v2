@@ -17,7 +17,7 @@ export default class UpdateCommand extends Command {
 
         message.reply("Alice will now update...");
 
-        const pull = spawn('git', ['pull', 'origin', 'theonewhostands/ALC-4']);
+        const pull = spawn('git', ['pull', 'origin', 'master']);
         let success = false;
         let uptodate = false;
 

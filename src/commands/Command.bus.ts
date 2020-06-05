@@ -7,6 +7,7 @@ import GreetCommand from './classes/Greet.command';
 import PromoteCommand from './classes/Promote.command';
 import ListCommand from './classes/List.command';
 import UpdateCommand from './classes/Update.command';
+import ContestCommand from './classes/Contest.command';
 
 class CommandBus {
     public all: {[key: string]: Command} = {};
@@ -42,5 +43,6 @@ commandBus.addHiddenCommand('update', new UpdateCommand);
 commandBus.addPublicCommand('assign', new AssignCommand);
 commandBus.addPublicCommand('greet', new GreetCommand);
 commandBus.addPublicCommand('promote', new PromoteCommand);
+commandBus.addPublicCommand('contest', new ContestCommand);
 
 export {commandBus as CommandBus}
