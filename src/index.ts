@@ -1,5 +1,5 @@
 import * as Discord from 'discord.js';
-import auth from '../auth.json';
+import auth from '../secret/auth.json';
 import { CommandBus } from './commands/Command.bus';
 
 var bot = new Discord.Client();
