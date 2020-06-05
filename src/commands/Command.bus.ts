@@ -4,6 +4,7 @@ import { Client, Message } from 'discord.js';
 import GraduateCommand from './Graduate.command';
 import GreetCommand from './Greet.command';
 import PromoteCommand from './Promote.command';
+import ContestCommand from './Contest.command';
 import ListCommand from './List.command';
 
 class CommandBus {
