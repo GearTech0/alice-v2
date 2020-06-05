@@ -15,7 +15,7 @@ npm install -g ts-node
 
 ### To run
 ```
-npm run-script run-script dev
+npm run-script dev
 ```
 You should see the code start with a response like:
 ```
