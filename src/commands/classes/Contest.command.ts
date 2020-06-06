@@ -6,7 +6,7 @@ import path from 'path';
 import validUrl from 'valid-url';
 import { dataflow } from "googleapis/build/src/apis/dataflow";
 import contestData from "../../../data/contestData.json";
-import sampleFiles from "../../../templates/sampleFiles.json";
+import sampleFilesList from "../../../templates/sampleFiles.json";
 
 export default class ContestCommand extends Command {
   public help = "Available Sub-commands for '!Contest': \nStart \nAdd \nVote \nEnd \nReset \nHelp "
@@ -23,57 +23,84 @@ export default class ContestCommand extends Command {
     console.log("---Contest Creation Started---")
     let reacts = contestData.reactions;
     let failMes = "Failed to start contest, please try again or contact an Admin.";
-    let chosenEntries = [];
 
     console.log("Starting Entry Selection");
-    try {
-      let files = sampleFiles; // Replace with file Retrieval from GDrive once available
-      let pastEntrants = contestData.pastEntries;
-      console.log("pastEntrants initialization:  "+pastEntrants+ "\nEntry 1: "+pastEntrants[0]+"\nEntry2:  "+pastEntrants[1]);
-      
-      
-      let entryCount = 5;
-      if(entryCount > reacts.length){  
-        let err = new Error();
-        err.name = "Reaction Limit Error";
-        err.message = "Not enough reactions for chosen entry amount.";
-        throw(err);
-      }
-      console.log("Reaction limit check passed");
 
-      if(entryCount > files.length){
-        let err = new Error();
-        err.name = "Entrant Count Error";
-        err.message = "Not enough aplicants for entries";
-        throw(err);
-      }
-      console.log("Applicant count check passed");
 
-      for (let x = 0; x < entryCount; ++x) {
-        let id = Math.round(Math.random()*10000)%files.length;
-        let fails= 0;
-        let failTerm = 1000; //number of times to repick file before throwing error
-        while(pastEntrants.includes(files[id]) ||  chosenEntries.includes(files[id])){ //check if chosen files is a past entrant or is already chosen
-          id = Math.round(Math.random()*10000)%files.length;
-          fails++;
-          if(fails >= failTerm){
-            let err = new Error();
-            err.name = "Attempts Count Error"
-            err.message = "No valid file found within "+fails+" attempts." ;
-            throw(err);           
-          }
-        }
-  
-        chosenEntries.push(files[id]);
-      }
-    }  catch (e) {
-      console.error("Error during contest entry selection!: "+ e);
-      message.reply(failMes);
-      return;
+
+    let files = Object.assign(sampleFilesList); // Replace with file Retrieval from GDrive once available
+    let pastEntrants = contestData.pastEntries;
+    console.log("pastEntrants initialization:  "+pastEntrants+ "\nEntry 1: "+pastEntrants[0].name+"\nEntry2:  "+pastEntrants[1]);
+    
+    
+    let entryCount = 5;
+    if(entryCount > reacts.length){  
+      let err = new Error();
+      err.name = "Reaction Limit Error";
+      err.message = "Not enough reactions for chosen entry amount.";
+      throw(err);
     }
+    console.log("Reaction limit check passed");
+
+    if(entryCount > Object.keys(files).length){
+      let err = new Error();
+      err.name = "Entrant Count Error";
+      err.message = "Not enough aplicants for entries";
+      throw(err);
+    }
+    console.log("Applicant count check passed");
+
+
+    for(let uuid in pastEntrants){
+      delete files[uuid];
+    }
+    if(Object.keys(files).length < entryCount){
+      console.log(`Not enough unused entries, pulling ${entryCount-Object.keys(files).length} from Past Entrants`);
+      while(Object.keys(files).length < entryCount){
+        let uuid = Object.keys(pastEntrants)[0];
+        files[uuid] = pastEntrants[uuid];
+        delete pastEntrants[uuid];
+      }
+    }else{
+      while(Object.keys(files).length > entryCount){
+        let fileCount = Object.keys(files).length
+        let dif = fileCount - entryCount;
+        let pos = Math.round(Math.random()*100000)%fileCount;
+        let dfe = fileCount - pos;
+        let num = 0;
+        if( dif == 1 || dfe == 1){
+          num = 1
+        }else{
+          num = Math.round(Math.random()*100000)%(dif >= dfe ? dfe : dif);
+        }
+        for(let x=0; x<num; ++x){
+          let uuid = Object.keys(files)[pos+x];
+          delete files[uuid];
+        }
+      }
+    }
+
+    /*
+    for (let x = 0; x < entryCount; ++x) {
+      let id = Math.round(Math.random()*10000)%Object.keys(files).length;
+      let fails= 0;
+      let failTerm = 1000; //number of times to repick file before throwing error
+      while(pastEntrants.includes(files[id]) ||  chosenEntries.includes(files[id])){ //check if chosen files is a past entrant or is already chosen
+        id = Math.round(Math.random()*10000)%Object.keys(files).length;
+        fails++;
+        if(fails >= failTerm){
+          let err = new Error();
+          err.name = "Attempts Count Error"
+          err.message = "No valid file found within "+fails+" attempts." ;
+          throw(err);           
+        }
+      }
+      chosenEntries.push(files[id]);
+    }
+    */
     console.log("Successful");
 
-    contestData.entries = chosenEntries;
+    contestData.entries = files;
 
     console.log("Writing data to file");
     
@@ -87,9 +114,11 @@ export default class ContestCommand extends Command {
     let announcement = "\n:musical_note::musical_note:Its time for another contest!:musical_note::musical_note: ";
     announcement += "\nPlace your vote by clicking the corresponding reaction! \n"
     
-    for(let x=0; x < contestData.entries.length; ++x){
-      let entry=contestData.entries[x];
-      announcement += `\n${reacts[x]} ${entry.name}\n${entry.url}\n`;
+    let y = 0;
+    for(let uuid in contestData.entries){//(let x=0; x < contestData.entries.length; ++x){
+      let entry = contestData.entries[uuid];
+      announcement += `\n${reacts[y]} ${entry.name}\n${entry.url}\n`;
+      ++y;
     }
     
     console.log("Successful");
@@ -110,7 +139,7 @@ export default class ContestCommand extends Command {
     let reaction_numbers = ["\u0030\u20E3","\u0031\u20E3","\u0032\u20E3","\u0033\u20E3","\u0034\u20E3","\u0035\u20E3", "\u0036\u20E3","\u0037\u20E3","\u0038\u20E3","\u0039\u20E3"];
     channel.send(announcement).then(function (message: Message){
       contestData.messageId = message.id;
-      for(let x=1; x <= contestData.entries.length; ++x){
+      for(let x=1; x <= entryCount; ++x){
 
         if(x <= 10){
           message.react(reaction_numbers[x]);
@@ -131,21 +160,15 @@ export default class ContestCommand extends Command {
 
     contestData.contestActive = true;
     console.log("Writing data to file");
-    try{
-      fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"),JSON.stringify(contestData, null, 2),{ flag: 'w' });
-      console.log("Contest Data successfully written to file.");
-    }
-    catch(e){
-      console.error("Error writing Contest Data to file!: "+e);
-      message.reply(failMes);
-      return;
-    }
+    fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"),JSON.stringify(contestData, null, 2),{ flag: 'w' });
+    console.log("Contest Data successfully written to file.");
+
     console.log("---Contest Successfully Started---");
     return;
     
   }
 
-  // Add to a list of sample files to be used for Contest
+  // Add sample file o GDrive to be used for Contest
   // Can be added to at any time, sounds files to be stored in gdrive
   public add(args: Array<string>, message: Message): void{
     
@@ -274,7 +297,9 @@ export default class ContestCommand extends Command {
 
   // Clear Past Entrants data to add them back to applicant pool
   public reset(){
-    contestData.pastEntries = [];
+    for( let entry in contestData.pastEntries){
+      delete contestData.pastEntries[entry];
+    }
     try{
       fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"),JSON.stringify(contestData, null, 2),{ flag: 'w' });
     }
