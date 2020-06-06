@@ -6,6 +6,7 @@ import path from 'path';
 import validUrl from 'valid-url';
 import { dataflow } from "googleapis/build/src/apis/dataflow";
 import contestData from "../../../data/contestData.json";
+import sampleFiles from "../../../templates/sampleFiles.json";
 
 export default class ContestCommand extends Command {
   public help = "Available Sub-commands for '!Contest': \nStart \nAdd \nVote \nEnd \nHelp "
@@ -17,43 +18,6 @@ export default class ContestCommand extends Command {
       message.reply(`There is already a Contest ongoing. \nCheck <#${contestData.contestChannelId}> to participate!`);
       return;
     }
-    let sampleFiles = [
-      {
-        "name": "test 1",
-        "url": "weblink",
-        "votes": 0
-      },
-      {
-        "name": "alpha",
-        "url": "sc.org",
-        "votes": 3
-      },
-      {
-        "name": "beta",
-        "url": "www.com",
-        "votes": 10
-      },
-      {
-        "name": "gamma",
-        "url": "spy.gov",
-        "votes": 5
-      },
-      {
-        "name": "epsilon",
-        "url": "-.-",
-        "votes": 1
-      },
-      {
-        "name": "omega",
-        "url": "ww2.come",
-        "votes": 2
-      },
-      {
-        "name": "theta",
-        "url": "woops",
-        "votes": 3
-      }
-    ];
     console.log("---Contest Creation Started---")
     let reacts = contestData.reactions;
     let failMes = "Failed to start contest, please try again or contact an Admin.";
