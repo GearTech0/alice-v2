@@ -13,7 +13,7 @@ export default class ContestCommand extends Command {
   //initiate a contest, announcing it to channel and 
   //This should read through the google drive folder, and choose N sample files in the root folder and save choice somewhere to be used when viewing list
   //5 random samples from gdrive, added prior to starting
-  public start(args: Array<string>, message: Message): Promise<void>{
+  public start(args: Array<string>, message: Message): void{
     if(contestData.contestActive){
       message.reply(`There is already a Contest ongoing. \nCheck <#${contestData.contestChannelId}> to participate!`);
       return;
@@ -29,6 +29,7 @@ export default class ContestCommand extends Command {
       let files = sampleFiles//GDriveController.getFiles();
       //^^ replacement test code for Gdrive retrieval
       let pastEntrants = contestData.pastEntries;//JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/pastEntrants.json")).toString());
+      console.log("pastEntrants initialization:  "+pastEntrants+ "\nEntry 1: "+pastEntrants[0]+"\nEntry2:  "+pastEntrants[1]);
       let entryCount = 5;
 
       //only needed for reaction voting---
@@ -41,19 +42,27 @@ export default class ContestCommand extends Command {
       console.log("reaction limit check passed");
       //---
 
+      if(entryCount > files.length){
+        let err = new Error();
+        err.name = "Entrant Count Error";
+        err.message = "Not enough aplicants for entries";
+        throw(err);
+      }
+      console.log("Applicant count check passed");
+
       //console.log(pastEntrants[0]);
       for (let x = 0; x < entryCount; x++) {
         let id = Math.round(Math.random()*10000)%files.length;
         let fails= 0;
-        let failTerm = 100; //number of times to repick file before throwing error
+        let failTerm = 1000; //number of times to repick file before throwing error
         while(  pastEntrants.includes(files[id]) ||  chosenEntries.includes(files[id])   ){ //check if chosen files is a past entrant or is already chosen
           id = Math.round(Math.random()*10000)%files.length;
-          failTerm++;
+          fails++;
           if(fails >= failTerm){
             let err = new Error();
             err.name = "Attempts Count Error"
             err.message = "No valid file found within "+fails+" attempts." ;
-            message.reply(failMes);
+            message.reply('Consider uploading more file!');
             throw(err);           
           }
         }
@@ -292,7 +301,9 @@ export default class ContestCommand extends Command {
         announcement += "\n :tada:CONGLATIONS:tada: \n\n Remember to upload your files before the next contest!";
         console.log('Successful');
         
-
+        for(let x=0; x<winners.length; x++){
+          contestData.pastEntries.push(winners[x].file);
+        }
         console.log("Writing to file");
         contestData.contestActive = false;
         try{
@@ -324,12 +335,15 @@ export default class ContestCommand extends Command {
     return;
   }
 
-
-  public test(args: Array<string>, message: Message): void{ //remove on production
-      console.log("Testing JSON import: ");
-      return;
+  public resetPastEntrants(){
+    contestData.pastEntries = [];
+    try{
+      fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"),JSON.stringify(contestData, null, 2),{ flag: 'w' });
+    }
+    catch(e){
+      console.error("Warning! Failure writing contest data to file after !contest end!: "+e);
+    }
   }
-
 
   public action(args: Array<string>, message: Message): void{
     
