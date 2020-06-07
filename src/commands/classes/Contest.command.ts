@@ -103,7 +103,7 @@ export default class ContestCommand extends Command {
       }
 
       for(let x in voteList.samples){
-        data.push([`${parseInt(x)+1}`, `[${voteList.titles[x]}](${voteList.samples[x]})`, `${(cnt[x]) ? cnt[x] : 'no votes'}`]);
+        data.push([`${parseInt(x)+1}`, ` | [${voteList.titles[x]}](${voteList.samples[x]})`, ` | ${(cnt[x]) ? cnt[x] : 'no votes'}`]);
       }
 
       let tbl = table(data, config);

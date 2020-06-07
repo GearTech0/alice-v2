@@ -38,7 +38,8 @@ if (cluster.isMaster) {
     
     bot.login(auth.token);
 
-    if (process.argv[2] === "dev") {
+    console.log(`Alice started in ${process.env.NODE_ENV} mode`);
+    if (process.env.NODE_ENV === "development") {
         try {
             bot.login(auth.tokendev);
         } catch (e) {

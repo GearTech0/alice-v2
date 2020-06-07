@@ -6,8 +6,7 @@
   "scripts": {
     "build-ts": "tsc",
     "watch-ts": "tsc -w",
-    "dev": "ts-node src/index.ts dev",
-    "prod": "ts-node src/index.ts",
+    "dev": "ts-node src/index.ts",
     "start": "nodemon ./dist/src/index.js"
   },
   "keywords": [
