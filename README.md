@@ -10,7 +10,8 @@ npm install -g typescript
 npm install -g ts-node
 ```
 
-After installing `ts-node`:
+### Set up
+After installing `ts-node`, add a bot-token to `token` and another (optionally) to `tokendev` inside of `secret/auth.template.json`. Rename `secret/auth.template.json` to `secret/auth.json`. Set environment variable `NODE_ENV` to either `production` or `development` depending on if you would like to use the `token` or `tokendev` value, respectively, for the bot.
 ```
 npm run-script dev
 ```
