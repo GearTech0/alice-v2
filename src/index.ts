@@ -35,8 +35,6 @@ if (cluster.isMaster) {
     bot.on('disconnect', (event) => {
         
     });
-    
-    bot.login(auth.token);
 
     console.log(`Alice started in ${process.env.NODE_ENV} mode`);
     if (process.env.NODE_ENV === "development") {
