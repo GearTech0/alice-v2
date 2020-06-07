@@ -1,9 +1,10 @@
 import Command from "./Command";
-import { Message } from "discord.js";
+import { Message, MessageEmbed } from "discord.js";
 import drive from "googleapis";
 import fs from "fs";
 import path from 'path';
 import validUrl from 'valid-url';
+import { table, getBorderCharacters } from 'table';
 import { dataflow } from "googleapis/build/src/apis/dataflow";
 
 export default class ContestCommand extends Command {
@@ -19,7 +20,7 @@ export default class ContestCommand extends Command {
       let files = [obj]//GDriveController.getFiles();
       let contestEntries = [obj];
       let pastEntrants = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/pastEntrants.json")).toString());
-      console.log(pastEntrants[0]);
+      
       for (let x = 0; x < 5; x++) {
         let id = Math.round(Math.random()*10000)%files.length;
         while(false /*check if file name matches any within pastEntrants*/){
@@ -74,32 +75,49 @@ export default class ContestCommand extends Command {
   
   //add vote to selected file in running Contest
   public vote(args: Array<string>, message: Message): void{
-    if(false)/*add check for on going contest*/{return}
-    console.log(args);
+    // add check for on going contest
+    if (false) {
+      return
+    }
+
     let votes = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/votes.json")).toString());
     if(!args[0]){
       var voteList = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/votingList.json")).toString());
-      var announcement = "Current Contest Entrants: ";
-      let cnt = [];
 
+      let data: Array<[string, string, string]> = [];
+      let config = {
+        border: getBorderCharacters('void'),
+        columnDefault: {
+          paddingLeft: 0,
+          paddingRight: 1
+        },
+        drawHorizontalLine: () => {
+          return false;
+        }
+      };
+
+      let cnt = [];
       for(let vote in votes){
 
         cnt[parseInt(votes[vote])-1] = (cnt[parseInt(votes[vote])]-1) ? cnt[parseInt(votes[vote])-1]+1 : 1;
       }
 
       for(let x in voteList.samples){
-        announcement += `\n${parseInt(x)+1}: ${voteList.samples[x]} | ${(cnt[x]) ? cnt[x] : 'no votes'}`;
-      } 
+        data.push([`${parseInt(x)+1}`, `[${voteList.titles[x]}](${voteList.samples[x]})`, `${(cnt[x]) ? cnt[x] : 'no votes'}`]);
+      }
 
-      message.reply(announcement);
+      let tbl = table(data, config);
+      message.reply({
+        embed: new MessageEmbed()
+          .addField("Contest", tbl)
+      });
       return;
     }
     const user = message.member.user.id;
     const vote = args[0];
     if( !((parseInt(vote) <= 5) && (parseInt(vote) > 0) ) ) {message.reply("Invalid vote. Usage: !Contest vote {1-5}"); return}
     votes[user] = vote;
-    console.log(votes[user]);
-    console.log(JSON.stringify(votes));
+    
     fs.writeFileSync(path.join(__dirname,"../../../data/votes.json"),JSON.stringify(votes),{ flag: 'w' });
     message.reply("Vote Accepted");
     return;
@@ -131,7 +149,7 @@ export default class ContestCommand extends Command {
       let func = args.shift().toLowerCase();
       if(func === "help") { func = "helpAction";}
       try{
-          console.log("func =  " + func + "\nInitiating Command");
+          console.log("Initiating Command " + func);
           this[func](args, message);
       }
       catch (Error) {
