@@ -98,8 +98,11 @@ export default class ContestCommand extends Command {
 
       let cnt = [];
       for(let vote in votes){
-
-        cnt[parseInt(votes[vote])-1] = (cnt[parseInt(votes[vote])]-1) ? cnt[parseInt(votes[vote])-1]+1 : 1;
+        let voteIndex = parseInt(votes[vote])-1;
+        if(!cnt[voteIndex]) {
+          cnt[voteIndex] = 0;
+        }
+        cnt[voteIndex] += 1;
       }
 
       for(let x in voteList.samples){
