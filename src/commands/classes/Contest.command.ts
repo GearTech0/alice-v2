@@ -30,7 +30,7 @@ export default class ContestCommand extends Command {
 
     let files = Object.assign(sampleFilesList); // Replace with file Retrieval from GDrive once available
     let pastEntrants = contestData.pastEntries;
-    console.log("pastEntrants initialization:  "+pastEntrants+ "\nEntry 1: "+pastEntrants[0].name+"\nEntry2:  "+pastEntrants[1]);
+    console.log("pastEntrants initialization:  "+pastEntrants);
     
     
     let entryCount = 5;
@@ -218,7 +218,7 @@ export default class ContestCommand extends Command {
         for (let reaction of reactions){
           reacEmoji.push(reaction[1].emoji);
           reacCount.push(reaction[1].count);
-          if(reacCount.length >= contestData.entries.length){ break; }
+          if(reacCount.length >= Object.keys(files).length){ break; }
         }
 
         console.log("Determining winners");
@@ -233,9 +233,11 @@ export default class ContestCommand extends Command {
             let winner = {};
             let x = reacCount.indexOf(max);
             winner["emoji"] = reacEmoji[x];
-            winner["count"] = reacCount[x];
-            winner["file"] = files[x];
-            files.splice(x,1);
+            winner["votes"] = reacCount[x];
+            let fileUUID = Object.keys(files)[x];
+            winner["file"] = Object.assign(files[fileUUID]);
+            winner["UUID"] = fileUUID;
+            delete files[fileUUID];
             reacEmoji.splice(x,1);
             reacCount.splice(x,1);
             winners.push(winner);
@@ -247,9 +249,9 @@ export default class ContestCommand extends Command {
         console.log("Creating announcement message");
         let announcement = "\nThe contest has ended and our winners are: "
         for(let x=0; x<winners.length; ++x){
-          announcement += `\n${winners[x].count} votes:   [${winners[x].file.name}]  `;
+          announcement += `\n${winners[x].votes} votes:   [${winners[x].file.name}]  `;
           let urls = `\n${winners[x].file.url} `;
-          while((x+1 < winners.length) && (winners[x].count == winners[x+1].count)){
+          while((x+1 < winners.length) && (winners[x].votes == winners[x+1].votes)){
             ++x;
             announcement += `and  [${winners[x].file.name}]  `;
             urls += `\n\n${winners[x].file.url} `;
@@ -261,7 +263,8 @@ export default class ContestCommand extends Command {
         console.log('Successful');
         
         for(let x=0; x<winners.length; ++x){
-          contestData.pastEntries.push(winners[x].file);
+
+          contestData.pastEntries[winners[x].UUID] = Object.assign(winners[x].file);
         }
         console.log("Writing contestData to file");
         contestData.contestActive = false;
