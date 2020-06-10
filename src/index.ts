@@ -38,7 +38,6 @@ if (cluster.isMaster) {
         
     });
     
-    bot.login(auth.token);
 
     if (process.argv[2] === "dev") {
         try {
