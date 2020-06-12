@@ -26,6 +26,6 @@ Alice - (##)
 docker run -id \
  -e ALICE_TOKEN="<bot_token>" \
  -e ALICE_TOKENDEV="<optional_dev_bot_token>" \
- -e NODE_ENV="<production or development>"
- docker.pkg.github.com/pratikbalar123/alice-v2/dockerized-alice-v2
+ -e NODE_ENV="<production or development>" \
+  docker.pkg.github.com/pratikbalar123/alice-v2/dockerized-alice-v2
 ```
