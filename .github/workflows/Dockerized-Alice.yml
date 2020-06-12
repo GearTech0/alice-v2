@@ -14,11 +14,12 @@ on:
   pull_request:
 
 env:
-  IMAGE_NAME: dockerized-alice
+  IMAGE_NAME: dockerized-alice-v2
 
 jobs:
-
-  TestingImage:
+  # Run tests.
+  # See also https://docs.docker.com/docker-hub/builds/automated-testing/
+  umagetest:
     runs-on: ubuntu-latest
 
     steps:
@@ -30,12 +31,12 @@ jobs:
             docker-compose --file docker-compose.test.yml build
             docker-compose --file docker-compose.test.yml run sut
           else
-            docker build . --file Dockerfile 
+            docker build . --file Dockerfile
           fi
 
   # Push image to GitHub Packages.
   # See also https://docs.docker.com/docker-hub/builds/
-  Pushing:
+  pushing:
     # Ensure test job passes before pushing image.
     needs: test
 
