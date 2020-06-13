@@ -23,18 +23,24 @@ export default class ContestCommand extends Command {
     console.log("---Contest Creation Started---")
     let reacts = contestData.reactions;
     let failMes = "Failed to start contest, please try again or contact an Admin.";
+    let files = Object.assign(new Object, sampleFilesList); // Replace with file Retrieval from GDrive once available
+    let pastEntrants = contestData.pastEntries;
+    let entryCount;
+    try{
+      let count = args.shift();
+      console.log("count: "+count);
+      if(!count) {throw(new Error);}
+      entryCount = parseInt(count);
+      console.log("entryCount:  "+entryCount);
+    }
+    catch(e){
+      console.log("Argument for entry count is invalid or not provided, leaving as default value.");
+      entryCount = 5;
+    }
 
     console.log("Starting Entry Selection");
 
-
-
-    let files = Object.assign(sampleFilesList); // Replace with file Retrieval from GDrive once available
-    let pastEntrants = contestData.pastEntries;
-    console.log("pastEntrants initialization:  "+pastEntrants);
-    
-    
-    let entryCount = 5;
-    if(entryCount > reacts.length){  
+    if(entryCount > Object.keys(reacts).length){  
       let err = new Error();
       err.name = "Reaction Limit Error";
       err.message = "Not enough reactions for chosen entry amount.";
@@ -42,10 +48,13 @@ export default class ContestCommand extends Command {
     }
     console.log("Reaction limit check passed");
 
+    console.log("Sample Files: "+Object.keys(sampleFilesList).length);
+    console.log("Current Applicant count: "+Object.keys(files).length);
+    console.log("Current Past Entry count: " + Object.keys(pastEntrants).length);
     if(entryCount > Object.keys(files).length){
       let err = new Error();
       err.name = "Entrant Count Error";
-      err.message = "Not enough aplicants for entries";
+      err.message = "Not enough aplicants to fill entry count.";
       throw(err);
     }
     console.log("Applicant count check passed");
@@ -79,34 +88,13 @@ export default class ContestCommand extends Command {
         }
       }
     }
-
-    /*
-    for (let x = 0; x < entryCount; ++x) {
-      let id = Math.round(Math.random()*10000)%Object.keys(files).length;
-      let fails= 0;
-      let failTerm = 1000; //number of times to repick file before throwing error
-      while(pastEntrants.includes(files[id]) ||  chosenEntries.includes(files[id])){ //check if chosen files is a past entrant or is already chosen
-        id = Math.round(Math.random()*10000)%Object.keys(files).length;
-        fails++;
-        if(fails >= failTerm){
-          let err = new Error();
-          err.name = "Attempts Count Error"
-          err.message = "No valid file found within "+fails+" attempts." ;
-          throw(err);           
-        }
-      }
-      chosenEntries.push(files[id]);
-    }
-    */
-    console.log("Successful");
+    console.log("Entrant Selection Successful");
 
     contestData.entries = files;
 
     console.log("Writing data to file");
     
-    fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"),JSON.stringify(contestData, null, 2),{ flag: 'w' });
-    console.log("Contest Data successfully written to file.");
-    
+    fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"),JSON.stringify(contestData, null, 2),{ flag: 'w' });    
     console.log("Successful");
 
 
@@ -117,7 +105,7 @@ export default class ContestCommand extends Command {
     let y = 0;
     for(let uuid in contestData.entries){//(let x=0; x < contestData.entries.length; ++x){
       let entry = contestData.entries[uuid];
-      announcement += `\n${reacts[y]} ${entry.name}\n${entry.url}\n`;
+      announcement += `\n${Object.keys(reacts)[y]} ${entry.name}\n${entry.url}\n`;
       ++y;
     }
     
@@ -136,17 +124,12 @@ export default class ContestCommand extends Command {
 
     console.log("Sending announcement");
 
-    let reaction_numbers = ["\u0030\u20E3","\u0031\u20E3","\u0032\u20E3","\u0033\u20E3","\u0034\u20E3","\u0035\u20E3", "\u0036\u20E3","\u0037\u20E3","\u0038\u20E3","\u0039\u20E3"];
+    let reaction_numbers = ["\u0030\u20E3","\u0031\u20E3","\u0032\u20E3","\u0033\u20E3","\u0034\u20E3","\u0035\u20E3", "\u0036\u20E3","\u0037\u20E3","\u0038\u20E3","\u0039\u20E3", "\uD83D\uDD1F"];  // 0 - 10
     channel.send(announcement).then(function (message: Message){
       contestData.messageId = message.id;
-      for(let x=1; x <= entryCount; ++x){
-
-        if(x <= 10){
-          message.react(reaction_numbers[x]);
-        }
-        else{
-          message.react(reacts[x-1]); 
-        }
+    
+      for(let x =0; x < entryCount; ++x){
+        message.react(Object.values(reacts)[x]);
       }
       
       contestData.contestChannelId = message.channel.id;
@@ -223,7 +206,7 @@ export default class ContestCommand extends Command {
 
         console.log("Determining winners");
         let winners = [];
-        while(winners.length < 3){
+        while(winners.length < 3 && (winners.length < reacCount.length)){
           let max = 0;
           for(let x of reacCount){
             max = x > max ? x : max;
@@ -235,7 +218,7 @@ export default class ContestCommand extends Command {
             winner["emoji"] = reacEmoji[x];
             winner["votes"] = reacCount[x];
             let fileUUID = Object.keys(files)[x];
-            winner["file"] = Object.assign(files[fileUUID]);
+            winner["file"] = Object.assign(new Object, files[fileUUID]);
             winner["UUID"] = fileUUID;
             delete files[fileUUID];
             reacEmoji.splice(x,1);
@@ -264,16 +247,11 @@ export default class ContestCommand extends Command {
         
         for(let x=0; x<winners.length; ++x){
 
-          contestData.pastEntries[winners[x].UUID] = Object.assign(winners[x].file);
+          contestData.pastEntries[winners[x].UUID] = Object.assign(new Object, winners[x].file);
         }
         console.log("Writing contestData to file");
         contestData.contestActive = false;
-        try{
-          fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"),JSON.stringify(contestData, null, 2),{ flag: 'w' });
-        }
-        catch(e){
-          console.error("Warning! Failure writing contest data to file after !contest end!: "+e);
-        }
+        fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"),JSON.stringify(contestData, null, 2),{ flag: 'w' });
         console.log("Successful");
 
         contestChannel.send(announcement);
@@ -300,6 +278,7 @@ export default class ContestCommand extends Command {
 
   // Clear Past Entrants data to add them back to applicant pool
   public reset(){
+    console.log("Clearing Past Entrant records");
     for( let entry in contestData.pastEntries){
       delete contestData.pastEntries[entry];
     }
@@ -308,7 +287,9 @@ export default class ContestCommand extends Command {
     }
     catch(e){
       console.error("Warning! Failure writing contest data to file after !contest reset!: "+e);
+      return;
     }
+    return;
   }
 
   public action(args: Array<string>, message: Message): void{
