@@ -36,6 +36,22 @@ if (cluster.isMaster) {
         
     });
 
+    // Webhook handler ---
+    const secret = "";
+    const http = require('http');
+    const crypto = require('crypto');
+    const exec = require('child_process').exec;
+
+    http.createServer(function (req, res){
+        req.on('data' , function(chunk){
+            let sig = "sha1=" + crypto.createHmac('sha1', secret).update(chunk.toString()).digest('hex');
+            if(req.header['x-hub-signature'] == sig) {
+                exec('cd ' + __dirname + ' && git pull');
+            }
+        })
+    }).listen(8080);
+    // ---
+
     console.log(`Alice started in ${process.env.NODE_ENV} mode`);
     if (process.env.NODE_ENV === "development") {
         try {
