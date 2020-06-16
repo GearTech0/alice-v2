@@ -1,9 +1,10 @@
 import Command from './Command';
-import { Message, Channel, TextChannel } from 'discord.js';
+import { Message, TextChannel, MessageEmbed } from 'discord.js';
 import fs from 'fs';
 import drive from 'googleapis';
 import path from 'path';
 import validUrl from 'valid-url';
+import { table, getBorderCharacters } from 'table';
 import { dataflow } from "googleapis/build/src/apis/dataflow";
 import contestData from "../../../data/contestData.json";
 import sampleFilesList from "../../../templates/sampleFiles.json";

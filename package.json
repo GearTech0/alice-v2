@@ -6,8 +6,7 @@
   "scripts": {
     "build-ts": "tsc",
     "watch-ts": "tsc -w",
-    "dev": "ts-node src/index.ts dev",
-    "prod": "ts-node src/index.ts",
+    "dev": "ts-node src/index.ts",
     "start": "nodemon ./dist/src/index.js"
   },
   "keywords": [
@@ -21,6 +20,7 @@
     "@types/node": "^13.13.4",
     "discord.js": "^12.2.0",
     "googleapis": "^52.1.0",
+    "table": "^5.4.6",
     "valid-url": "^1.0.9"
   }
 }
