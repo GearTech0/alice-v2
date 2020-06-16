@@ -20,7 +20,6 @@ interface ContestData {
   entries: { [key: string]:ContestFile };
   pastEntries: { [key:string]:ContestFile };
   reactions: {};
-
 }
 
 export default class ContestCommand extends Command {
@@ -80,7 +79,7 @@ export default class ContestCommand extends Command {
     }
     console.log("Reaction limit check passed");
 
-    //console.log("Sample Files: "+Object.keys(sampleFilesList).length);
+
     console.log("Current Applicant count: "+Object.keys(files).length);
     console.log("Current Past Entry count: " + Object.keys(pastEntrants).length);
     if(entryCount > Object.keys(files).length){
@@ -137,8 +136,7 @@ export default class ContestCommand extends Command {
     
     let data: Array<[string, string]> = [];
     let y = 0;
-    for(let entry of Object.values(contestData.entries)){//(let x=0; x < contestData.entries.length; ++x){
-      //let entry = contestData.entries[uuid];
+    for(let entry of Object.values(contestData.entries)){
       data.push([`${Object.keys(reacts)[y]}`, `[${entry.name}](${entry.url})\n`]);
       ++y;
     }
@@ -272,23 +270,17 @@ export default class ContestCommand extends Command {
         let mEmbed = new MessageEmbed();
         let announcement = "\nThe contest has ended and our winners are: "
         for(let x=0; x<winners.length; ++x){
-          //announcement += `\n${winners[x].votes} votes:   [${winners[x].file.name}]  `;
           let names = "";
           let place = places[x];
           names += `[${winners[x].file.name}](${winners[x].file.url})\n`;
-          //let urls = `\n${winners[x].file.url} `;
           while((x+1 < winners.length) && (winners[x].votes == winners[x+1].votes)){
             ++x;
             names += `[${winners[x].file.name}](${winners[x].file.url})\n`;
-            //announcement += `and  [${winners[x].file.name}]  `;
-            //urls += `\n\n${winners[x].file.url} `;
           }
-          //announcement += urls+"\n";
           mEmbed.addField(`${place} | ${winners[x].votes} votes`, names);
       
         }
         mEmbed.addField(":tada:CONGRATULIONS:tada:", "\nRemember to upload your files before the next contest!");
-        //announcement += "\n :tada:CONGRATULIONS:tada: \n\n Remember to upload your files before the next contest!";
         console.log('Successful');
         
         for(let x=0; x<winners.length; ++x){
