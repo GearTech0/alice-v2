@@ -7,6 +7,22 @@ import validUrl from 'valid-url';
 import { table, getBorderCharacters } from 'table';
 import { dataflow } from "googleapis/build/src/apis/dataflow";
 
+interface ContestFile {
+  name: string;
+  url: string;
+  [key:string]:any;
+}
+interface ContestData {
+  contestActive: boolean;
+  contestChannelName: string;
+  contestChannelId: string;
+  messageId: string;
+  entries: { [key: string]:ContestFile };
+  pastEntries: { [key:string]:ContestFile };
+  reactions: {};
+
+}
+
 export default class ContestCommand extends Command {
   public help = "Available Sub-commands for '!Contest': \nStart \nAdd \nVote \nEnd \nReset \nHelp "
 
@@ -15,7 +31,7 @@ export default class ContestCommand extends Command {
   // This should read through the google drive folder, and choose N sample files in the root folder and save choice somewhere to be used when viewing list
   // Files to be added prior to starting via !Contest add
   public start(args: Array<string>, message: Message): void{
-    let contestData = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/contestData.json")).toString());
+    let contestData: ContestData = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/contestData.json")).toString());
     if(contestData.contestActive){
       message.reply(`There is already a Contest ongoing. \nCheck <#${contestData.contestChannelId}> to participate!`);
       return;
@@ -23,7 +39,7 @@ export default class ContestCommand extends Command {
     console.log("---Contest Creation Started---")
     let reacts = contestData.reactions;
     let failMes = "Failed to start contest, please try again or contact an Admin.";
-    let files: {[key:string]:any} = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../templates/sampleFiles.json")).toString()); // Replace with file Retrieval from GDrive once available
+    let files: {[key:string]: ContestFile} = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../templates/sampleFiles.json")).toString()); // Replace with file Retrieval from GDrive once available
     let pastEntrants = contestData.pastEntries;
     let entryCount;
     let config = { //  config for Embed table formatting
@@ -123,7 +139,7 @@ export default class ContestCommand extends Command {
     let y = 0;
     for(let entry of Object.values(contestData.entries)){//(let x=0; x < contestData.entries.length; ++x){
       //let entry = contestData.entries[uuid];
-      data.push([`${Object.keys(reacts)[y]}`, `[${(<any>entry).name}](${(<any>entry).url})\n`]);
+      data.push([`${Object.keys(reacts)[y]}`, `[${entry.name}](${entry.url})\n`]);
       ++y;
     }
     let tbl = table(data, config);
@@ -204,7 +220,7 @@ export default class ContestCommand extends Command {
   // Tally vote and announce top 3(can be more in case of ties) as winners of Contest
   // Winners get saved as Past Entries to be excluded from applicant pool in future contests
   public end(args: Array<string>, message: Message): void{ 
-    let contestData = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/contestData.json")).toString());
+    let contestData: ContestData = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/contestData.json")).toString());
     if(contestData.contestActive){
       console.log("---Ending Contest---");
       let reaction_numbers = ["\u0030\u20E3","\u0031\u20E3","\u0032\u20E3","\u0033\u20E3","\u0034\u20E3","\u0035\u20E3", "\u0036\u20E3","\u0037\u20E3","\u0038\u20E3","\u0039\u20E3"];
@@ -343,6 +359,8 @@ export default class ContestCommand extends Command {
     }
     return;
   }
+
+  
 
   
 }
