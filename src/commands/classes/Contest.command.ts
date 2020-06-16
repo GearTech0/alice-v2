@@ -6,8 +6,6 @@ import path from 'path';
 import validUrl from 'valid-url';
 import { table, getBorderCharacters } from 'table';
 import { dataflow } from "googleapis/build/src/apis/dataflow";
-import contestData from "../../../data/contestData.json";
-import sampleFilesList from "../../../templates/sampleFiles.json";
 
 export default class ContestCommand extends Command {
   public help = "Available Sub-commands for '!Contest': \nStart \nAdd \nVote \nEnd \nReset \nHelp "
@@ -17,6 +15,7 @@ export default class ContestCommand extends Command {
   // This should read through the google drive folder, and choose N sample files in the root folder and save choice somewhere to be used when viewing list
   // Files to be added prior to starting via !Contest add
   public start(args: Array<string>, message: Message): void{
+    let contestData = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/contestData.json")).toString());
     if(contestData.contestActive){
       message.reply(`There is already a Contest ongoing. \nCheck <#${contestData.contestChannelId}> to participate!`);
       return;
@@ -24,7 +23,7 @@ export default class ContestCommand extends Command {
     console.log("---Contest Creation Started---")
     let reacts = contestData.reactions;
     let failMes = "Failed to start contest, please try again or contact an Admin.";
-    let files = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../templates/sampleFiles.json")).toString()); // Replace with file Retrieval from GDrive once available
+    let files: {[key:string]:any} = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../templates/sampleFiles.json")).toString()); // Replace with file Retrieval from GDrive once available
     let pastEntrants = contestData.pastEntries;
     let entryCount;
     let config = { //  config for Embed table formatting
@@ -65,7 +64,7 @@ export default class ContestCommand extends Command {
     }
     console.log("Reaction limit check passed");
 
-    console.log("Sample Files: "+Object.keys(sampleFilesList).length);
+    //console.log("Sample Files: "+Object.keys(sampleFilesList).length);
     console.log("Current Applicant count: "+Object.keys(files).length);
     console.log("Current Past Entry count: " + Object.keys(pastEntrants).length);
     if(entryCount > Object.keys(files).length){
@@ -108,6 +107,7 @@ export default class ContestCommand extends Command {
     console.log("Entrant Selection Successful");
 
     contestData.entries = files;
+    console.log(files);
 
     console.log("Writing data to file");
     
@@ -121,9 +121,9 @@ export default class ContestCommand extends Command {
     
     let data: Array<[string, string]> = [];
     let y = 0;
-    for(let uuid in contestData.entries){//(let x=0; x < contestData.entries.length; ++x){
-      let entry = contestData.entries[uuid];
-      data.push([`${Object.keys(reacts)[y]}`, `[${entry.name}](${entry.url}): ${entry.url}\n`]);
+    for(let entry of Object.values(contestData.entries)){//(let x=0; x < contestData.entries.length; ++x){
+      //let entry = contestData.entries[uuid];
+      data.push([`${Object.keys(reacts)[y]}`, `[${(<any>entry).name}](${(<any>entry).url})\n`]);
       ++y;
     }
     let tbl = table(data, config);
@@ -150,7 +150,7 @@ export default class ContestCommand extends Command {
       contestData.messageId = message.id;
     
       for(let x =0; x < entryCount; ++x){
-        await message.react(Object.values(reacts)[x]);
+        await message.react(Object.values(reacts)[x] as any);
       }
       
       contestData.contestChannelId = message.channel.id;
@@ -203,7 +203,8 @@ export default class ContestCommand extends Command {
 
   // Tally vote and announce top 3(can be more in case of ties) as winners of Contest
   // Winners get saved as Past Entries to be excluded from applicant pool in future contests
-  public end(args: Array<string>, message: Message): void{ //
+  public end(args: Array<string>, message: Message): void{ 
+    let contestData = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/contestData.json")).toString());
     if(contestData.contestActive){
       console.log("---Ending Contest---");
       let reaction_numbers = ["\u0030\u20E3","\u0031\u20E3","\u0032\u20E3","\u0033\u20E3","\u0034\u20E3","\u0035\u20E3", "\u0036\u20E3","\u0037\u20E3","\u0038\u20E3","\u0039\u20E3"];
@@ -307,6 +308,7 @@ export default class ContestCommand extends Command {
 
   // Clear Past Entrants data to add them back to applicant pool
   public reset(){
+    let contestData = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/contestData.json")).toString());
     console.log("Clearing Past Entrant records");
     for( let entry in contestData.pastEntries){
       delete contestData.pastEntries[entry];
