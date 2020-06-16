@@ -24,14 +24,30 @@ export default class ContestCommand extends Command {
     console.log("---Contest Creation Started---")
     let reacts = contestData.reactions;
     let failMes = "Failed to start contest, please try again or contact an Admin.";
-    let files = Object.assign(new Object, sampleFilesList); // Replace with file Retrieval from GDrive once available
+    let files = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../templates/sampleFiles.json")).toString()); // Replace with file Retrieval from GDrive once available
     let pastEntrants = contestData.pastEntries;
     let entryCount;
+    let config = { //  config for Embed table formatting
+      border: getBorderCharacters('void'),
+      columnDefault: {
+        paddingLeft: 0,
+        paddingRight: 1
+      },
+      drawHorizontalLine: () => {
+        return false;
+      }
+    };
+
+
     try{
       let count = args.shift();
       console.log("count: "+count);
       if(!count) {throw(new Error);}
       entryCount = parseInt(count);
+      if(entryCount < 3){
+        console.log("Entry count must be 3 or more.");
+        throw new Error;
+      }
       console.log("entryCount:  "+entryCount);
     }
     catch(e){
@@ -103,12 +119,15 @@ export default class ContestCommand extends Command {
     let announcement = "\n:musical_note::musical_note:Its time for another contest!:musical_note::musical_note: ";
     announcement += "\nPlace your vote by clicking the corresponding reaction! \n"
     
+    let data: Array<[string, string]> = [];
     let y = 0;
     for(let uuid in contestData.entries){//(let x=0; x < contestData.entries.length; ++x){
       let entry = contestData.entries[uuid];
-      announcement += `\n${Object.keys(reacts)[y]} ${entry.name}\n${entry.url}\n`;
+      data.push([`${Object.keys(reacts)[y]}`, `[${entry.name}](${entry.url}): ${entry.url}\n`]);
       ++y;
     }
+    let tbl = table(data, config);
+    let mEmbed = new MessageEmbed().addField("Contest Entries", tbl);
     
     console.log("Successful");
 
@@ -126,11 +145,12 @@ export default class ContestCommand extends Command {
     console.log("Sending announcement");
 
     let reaction_numbers = ["\u0030\u20E3","\u0031\u20E3","\u0032\u20E3","\u0033\u20E3","\u0034\u20E3","\u0035\u20E3", "\u0036\u20E3","\u0037\u20E3","\u0038\u20E3","\u0039\u20E3", "\uD83D\uDD1F"];  // 0 - 10
-    channel.send(announcement).then(function (message: Message){
+    channel.send(announcement, {embed: mEmbed}).then(async function (message: Message){
+      
       contestData.messageId = message.id;
     
       for(let x =0; x < entryCount; ++x){
-        message.react(Object.values(reacts)[x]);
+        await message.react(Object.values(reacts)[x]);
       }
       
       contestData.contestChannelId = message.channel.id;
@@ -231,19 +251,27 @@ export default class ContestCommand extends Command {
         console.log("Successful");
 
         console.log("Creating announcement message");
+        let places = ["1st Place", "2nd Place", "3rd Place"];
+        let mEmbed = new MessageEmbed();
         let announcement = "\nThe contest has ended and our winners are: "
         for(let x=0; x<winners.length; ++x){
-          announcement += `\n${winners[x].votes} votes:   [${winners[x].file.name}]  `;
-          let urls = `\n${winners[x].file.url} `;
+          //announcement += `\n${winners[x].votes} votes:   [${winners[x].file.name}]  `;
+          let names = "";
+          let place = places[x];
+          names += `[${winners[x].file.name}](${winners[x].file.url})\n`;
+          //let urls = `\n${winners[x].file.url} `;
           while((x+1 < winners.length) && (winners[x].votes == winners[x+1].votes)){
             ++x;
-            announcement += `and  [${winners[x].file.name}]  `;
-            urls += `\n\n${winners[x].file.url} `;
+            names += `[${winners[x].file.name}](${winners[x].file.url})\n`;
+            //announcement += `and  [${winners[x].file.name}]  `;
+            //urls += `\n\n${winners[x].file.url} `;
           }
-          announcement += urls+"\n";
+          //announcement += urls+"\n";
+          mEmbed.addField(`${place} | ${winners[x].votes} votes`, names);
       
         }
-        announcement += "\n :tada:CONGRATULIONS:tada: \n\n Remember to upload your files before the next contest!";
+        mEmbed.addField(":tada:CONGRATULIONS:tada:", "\nRemember to upload your files before the next contest!");
+        //announcement += "\n :tada:CONGRATULIONS:tada: \n\n Remember to upload your files before the next contest!";
         console.log('Successful');
         
         for(let x=0; x<winners.length; ++x){
@@ -255,7 +283,7 @@ export default class ContestCommand extends Command {
         fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"),JSON.stringify(contestData, null, 2),{ flag: 'w' });
         console.log("Successful");
 
-        contestChannel.send(announcement);
+        contestChannel.send(announcement, {embed: mEmbed});
 
         console.log("Contest has been Ended");
         return;
