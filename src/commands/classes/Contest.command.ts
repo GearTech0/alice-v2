@@ -130,8 +130,6 @@ export default class ContestCommand extends Command {
     console.log("Determining Server 'contests' channel");
     let channel;
     try {
-      let tbl = table(data, config);
-      let mEmbed = new MessageEmbed().addField("Contest Entries", tbl);
       channel = message.guild.channels.cache.find(channel => channel.name === contestData.contestChannelName);
     } catch (e) {
       console.error("Error! Could not find contest channel!: "+e);
@@ -142,7 +140,8 @@ export default class ContestCommand extends Command {
 
     console.log("Sending announcement");
 
-    
+    let tbl = table(data, config);
+    let mEmbed = new MessageEmbed().addField("Contest Entries", tbl);
     channel.send(announcement, {embed: mEmbed}).then(async function (message: Message){
       
       contestData.messageId = message.id;
