@@ -1,26 +1,12 @@
 import Command from './Command';
-import { Message, TextChannel, MessageEmbed } from 'discord.js';
 import fs from 'fs';
 import drive from 'googleapis';
 import path from 'path';
 import validUrl from 'valid-url';
+import { Message, TextChannel, MessageEmbed } from 'discord.js';
 import { table, getBorderCharacters } from 'table';
 import { dataflow } from "googleapis/build/src/apis/dataflow";
-
-interface ContestFile {
-  name: string;
-  url: string;
-  [key:string]:any;
-}
-interface ContestData {
-  contestActive: boolean;
-  contestChannelName: string;
-  contestChannelId: string;
-  messageId: string;
-  entries: { [key: string]:ContestFile };
-  pastEntries: { [key:string]:ContestFile };
-  reactions: {};
-}
+import { ContestData, ContestFile } from './exports';
 
 export default class ContestCommand extends Command {
   public help = "Available Sub-commands for '!Contest': \nStart \nAdd \nVote \nEnd \nReset \nHelp "
@@ -38,7 +24,7 @@ export default class ContestCommand extends Command {
     console.log("---Contest Creation Started---")
     let reacts = contestData.reactions;
     let failMes = "Failed to start contest, please try again or contact an Admin.";
-    let files: {[key:string]: ContestFile} = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../templates/sampleFiles.json")).toString()); // Replace with file Retrieval from GDrive once available
+    let files: {[key: string]: ContestFile} = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/templates/sampleFiles.json")).toString()); // Replace with file Retrieval from GDrive once available
     let pastEntrants = contestData.pastEntries;
     let entryCount;
     let config = { //  config for Embed table formatting
@@ -94,15 +80,15 @@ export default class ContestCommand extends Command {
     for(let uuid in pastEntrants){
       delete files[uuid];
     }
-    if(Object.keys(files).length < entryCount){
+    if(Object.keys(files).length < entryCount) {
       console.log(`Not enough unused entries, pulling ${entryCount-Object.keys(files).length} from Past Entrants`);
-      while(Object.keys(files).length < entryCount){
+      while(Object.keys(files).length < entryCount) {
         let uuid = Object.keys(pastEntrants)[0];
         files[uuid] = pastEntrants[uuid];
         delete pastEntrants[uuid];
       }
-    }else{
-      while(Object.keys(files).length > entryCount){
+    }else {
+      while(Object.keys(files).length > entryCount) {
         let fileCount = Object.keys(files).length
         let dif = fileCount - entryCount;
         let pos = Math.round(Math.random()*100000)%fileCount;
@@ -122,11 +108,10 @@ export default class ContestCommand extends Command {
     console.log("Entrant Selection Successful");
 
     contestData.entries = files;
-    console.log(files);
 
     console.log("Writing data to file");
     
-    fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"),JSON.stringify(contestData, null, 2),{ flag: 'w' });    
+    fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"), JSON.stringify(contestData, null, 2),{ flag: 'w' });    
     console.log("Successful");
 
 
@@ -136,18 +121,17 @@ export default class ContestCommand extends Command {
     
     let data: Array<[string, string]> = [];
     let y = 0;
-    for(let entry of Object.values(contestData.entries)){
+    for(let entry of Object.values(contestData.entries)) {
       data.push([`${Object.keys(reacts)[y]}`, `[${entry.name}](${entry.url})\n`]);
       ++y;
     }
-    let tbl = table(data, config);
-    let mEmbed = new MessageEmbed().addField("Contest Entries", tbl);
-    
     console.log("Successful");
 
     console.log("Determining Server 'contests' channel");
     let channel;
     try {
+      let tbl = table(data, config);
+      let mEmbed = new MessageEmbed().addField("Contest Entries", tbl);
       channel = message.guild.channels.cache.find(channel => channel.name === contestData.contestChannelName);
     } catch (e) {
       console.error("Error! Could not find contest channel!: "+e);
@@ -163,12 +147,12 @@ export default class ContestCommand extends Command {
       
       contestData.messageId = message.id;
     
-      for(let x =0; x < entryCount; ++x){
+      for(let x =0; x < entryCount; ++x) {
         await message.react(Object.values(reacts)[x] as any);
       }
       
       contestData.contestChannelId = message.channel.id;
-      fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"),JSON.stringify(contestData, null, 2),{ flag: 'w' });
+      fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"), JSON.stringify(contestData, null, 2),{ flag: 'w' });
       return;
     }).catch(function (e){
       console.error("Error creating contest message!"+e);
@@ -178,10 +162,11 @@ export default class ContestCommand extends Command {
 
     contestData.contestActive = true;
     console.log("Writing data to file");
-    fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"),JSON.stringify(contestData, null, 2),{ flag: 'w' });
+    fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"), JSON.stringify(contestData, null, 2),{ flag: 'w' });
     console.log("Contest Data successfully written to file.");
 
     console.log("---Contest Successfully Started---");
+    message.reply("Contest has been started!");
     return;
     
   }
@@ -280,7 +265,7 @@ export default class ContestCommand extends Command {
           mEmbed.addField(`${place} | ${winners[x].votes} votes`, names);
       
         }
-        mEmbed.addField(":tada:CONGRATULIONS:tada:", "\nRemember to upload your files before the next contest!");
+        mEmbed.addField(":tada:CONGRATULATIONS:tada:", "\nLook forward to our next contest!");
         console.log('Successful');
         
         for(let x=0; x<winners.length; ++x){
@@ -289,7 +274,7 @@ export default class ContestCommand extends Command {
         }
         console.log("Writing contestData to file");
         contestData.contestActive = false;
-        fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"),JSON.stringify(contestData, null, 2),{ flag: 'w' });
+        fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json") ,JSON.stringify(contestData, null, 2),{ flag: 'w' });
         console.log("Successful");
 
         contestChannel.send(announcement, {embed: mEmbed});
@@ -318,11 +303,11 @@ export default class ContestCommand extends Command {
   public reset(){
     let contestData = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/contestData.json")).toString());
     console.log("Clearing Past Entrant records");
-    for( let entry in contestData.pastEntries){
+    for(let entry in contestData.pastEntries){
       delete contestData.pastEntries[entry];
     }
     try{
-      fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"),JSON.stringify(contestData, null, 2),{ flag: 'w' });
+      fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"), JSON.stringify(contestData, null, 2),{ flag: 'w' });
     }
     catch(e){
       console.error("Warning! Failure writing contest data to file after !contest reset!: "+e);

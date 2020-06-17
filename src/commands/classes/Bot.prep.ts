@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-export function filePrep(){
+export function filePrep() {
     if(!fs.existsSync(  path.join(__dirname,"../../../data/contestData.json")  )  )
     {
         console.log("No Contest Data file found, creating from template.");
