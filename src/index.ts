@@ -5,7 +5,7 @@ import { CommandBus } from './commands/Command.bus';
 import { filePrep } from "./commands/classes/Bot.prep";
 
 filePrep();
-var bot = new Discord.Client();
+var bot = new Discord.Client({disableMentions: 'none'});
 
 if (cluster.isMaster) {
     console.log(`Master ${process.pid} is running`);
