@@ -2,7 +2,9 @@ import * as Discord from 'discord.js';
 import auth from '../secret/auth.json';
 import cluster from 'cluster';
 import { CommandBus } from './commands/Command.bus';
+import { filePrep } from "./commands/classes/Bot.prep";
 
+filePrep();
 var bot = new Discord.Client();
 
 if (cluster.isMaster) {
