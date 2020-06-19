@@ -3,7 +3,8 @@ import fs from 'fs';
 import drive from 'googleapis';
 import path from 'path';
 import validUrl from 'valid-url';
-import { Message, TextChannel, MessageEmbed } from 'discord.js';
+import { v4 as UUID } from 'uuid';
+import { Message, TextChannel, MessageEmbed, MessageAttachment } from 'discord.js';
 import { table, getBorderCharacters } from 'table';
 import { dataflow } from "googleapis/build/src/apis/dataflow";
 import { ContestData, ContestFile, ContestConfig, VoteInfo } from './exports';
@@ -115,10 +116,10 @@ export default class ContestCommand extends Command {
 			message.reply("There is no ongoing contest with given name");
 			return;
 		}
-		let data: VoteInfo = JSON.parse(fs.readFileSync(filePath+`/SampleVoteInfo.json`).toString());
+		let data: VoteInfo = JSON.parse(fs.readFileSync(filePath+`/ContestVoteInfo.json`).toString());
 		if(data.voteStage === 'submission'){
-			console.log("Contest is already past sample vote phase.");
-			message.reply("Contest is already past sample vote phase.");
+			console.log("Contest is already past the sample vote phase.");
+			message.reply("Contest is already past the sample vote phase.");
 			return;
 		}
 		if(data.voteStage === 'complete') {
@@ -160,17 +161,106 @@ export default class ContestCommand extends Command {
 		let announcement = `The sample for our "${contestName}" contest has been chosen!\nShare your sound file with "!contest submit ${contestName}" in the comment to enter the contest!`;
 		let mEmbed = new MessageEmbed();
 		mEmbed.setTitle(`${contestName}`);
-		mEmbed.setDescription(`Sample file to use for your contest entry:  [${winner.file.name}](${winner.file.url})`);
+		mEmbed.setDescription(`Sample file to use for your contest entry:  [${winner.file.name}](${winner.file.url})\nVote for your favourite using the reactions!`);
+		let mEmbed2 = new MessageEmbed();
+		mEmbed2.setTitle('Submissions:');
+		//let contestMessage = await channel.createWebhook('Message Webhook').then(w => w.send(announcement, {embeds: [mEmbed, mEmbed2]}));
 		let contestMessage = await channel.send(announcement, mEmbed);
 
 		try {
 			data.voteStage = 'submission';
 			data.entries = {};
+			data.messageId = contestMessage.id;
 			fs.writeFileSync(filePath+`/ContestVoteInfo.json`, JSON.stringify(data, null, 2), { flag: 'w' });
 		}
 		catch(e) {
-			message.reply("An error occured while saving contest data, please contact an admin");
+			console.error("An error occured while saving contest data.");
+			message.reply("An error has occured, please contact an admin");
+			throw e;
+		}
+		return;
+	}
+
+	public async submit(args: Array<string>, message: Message) {
+		if(!args[0]) {
+			console.log("Please provide name for contest, !contest submit <name>. \n ex: !contest submit Running Contest");
+			message.reply("Please provide name for contest, !contest submit <name>. \n ex: !contest submit Running Contest");
 			return;
+		}
+		let serverId = message.guild.id;
+		let contestName = args.join(" ");
+		let filePath = path.join(__dirname, `../../../data/ContestData/${serverId}/${contestName}`);
+		if(!fs.existsSync(filePath)) {
+			console.log("There is no ongoing contest with given name");
+			message.reply("There is no ongoing contest with given name");
+			return;
+		}
+		let data: VoteInfo = JSON.parse(fs.readFileSync(filePath+`/ContestVoteInfo.json`).toString());
+		if(data.voteStage === 'sample'){
+			console.log("Contest is is still in the sample vote phase.");
+			message.reply("Contest is still in the sample vote phase.");
+			return;
+		}
+		if(data.voteStage === 'complete') {
+			console.log("Contest is already complete.");
+			message.reply("Contest is already complete.");
+			return;
+		}
+		let channel = await message.guild.channels.resolve(data.contestChannelId) as TextChannel;
+		let voteMessage = await channel.messages.fetch(data.messageId);
+		let config: ContestConfig = JSON.parse(fs.readFileSync(path.join(__dirname, `../../../data/ContestData/ContestConfig.json`)).toString());
+		let mEmbed = voteMessage.embeds[0];
+		let entryCount = mEmbed.fields.length;
+
+		if(entryCount == 25) { // Max number of embed fields
+			console.log("Entry max reached, cannot accept more entries!");
+			message.reply("Maximum amount of entries have already been submitted.\nPlease try again in the next contest!");
+			return;
+		}
+		if(entryCount == Object.keys(config.reactions).length) {
+			console.log("Not enough reactions to accept more submissions");
+			message.reply("There was an error with your submission, contact an admin.");
+			return;
+		}
+
+		let submitter = message.author;
+		for (let submission of Object.values(data.entries)) {
+			if (submission.submitter === submitter.id) {
+				message.reply("You have already submitted your entry for this contest.");
+				return;
+			}
+		}
+		let submission: MessageAttachment;
+		try{
+			submission = Array.from(message.attachments.values())[0];
+		}catch (e){
+			//console.log(Array.from(message.attachments.values()).toLocaleString());
+			console.error("No message attachment");
+			message.reply("No submission file was provided.");
+			throw e;
+		}
+		Contest.validate(submission); // validate attachment is usable for contest
+		Contest.upload(submission) // save submission to gDrive
+		// change these to reflect gDrive data
+		let fileName = submission.name;
+		let fileUrl = submission.url;
+		let uuid = UUID();
+
+		mEmbed.addField(`${Object.keys(config.reactions)[entryCount]}@${submitter.username}`, `[${fileName}](${fileUrl})`);
+		voteMessage.edit(voteMessage.content, mEmbed);
+		await voteMessage.react(Object.values(config.reactions)[entryCount] as any)
+		message.delete();
+		message.reply("Your submission has been entered into the contest.");
+
+		data.entries[uuid] = {name: fileName, url: fileUrl};
+		data.entries[uuid].submitter = submitter.id;
+		try {
+			fs.writeFileSync(filePath+`/ContestVoteInfo.json`, JSON.stringify(data, null, 2), { flag: 'w' });
+		}
+		catch(e) {
+			console.error("An error occured while saving contest data.");
+			message.reply("An error has occured, please contact an admin");
+			throw e;
 		}
 		return;
 	}

@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { Message, TextChannel, MessageEmbed } from 'discord.js';
+import { Message, TextChannel, MessageEmbed, MessageAttachment } from 'discord.js';
 import { ContestData, ContestFile, ContestConfig } from './exports';
 import { table, getBorderCharacters } from 'table';
 import { createDecipher } from 'crypto';
@@ -49,3 +49,9 @@ export function selectFiles(files: {[key: string]: ContestFile}, entryCount: num
     return files;
 }
 
+export function validate(attachment: MessageAttachment) { // todo
+    return;
+}
+export function upload(attachment: MessageAttachment) { // todo
+
+}

@@ -1,6 +1,7 @@
 export interface ContestFile {
   name: string;
   url: string;
+  submitter?: string;
   [key: string]: any;
 }
 
