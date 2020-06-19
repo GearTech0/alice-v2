@@ -39,14 +39,19 @@ if (cluster.isMaster) {
     });
 
     console.log(`Alice started in ${process.env.NODE_ENV} mode`);
-    if (process.env.NODE_ENV === "development") {
-        try {
-            bot.login(auth.tokendev);
-        } catch (e) {
-            console.error("Invalid develop authentication token");
-            bot.login(auth.token);
+    let runModes = ["production", "development"];
+    try {
+        switch(process.env.NODE_ENV) {
+            case runModes[0]:
+                bot.login(auth.token);
+                break;
+            case runModes[1]:
+                bot.login(auth.tokendev);
+                break;
+            default:
+                throw Error(`Run mode is not specified. Please append one of the following to the run command: ${runModes}`);
         }
-    } else {
-        bot.login(auth.token);
+    } catch (e) {
+        console.error(e);
     }
 }
