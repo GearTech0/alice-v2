@@ -1,11 +1,23 @@
-version: '2.4'
+version: "3"
+
 services:
-    alice:
-        build:
-            context: .
-        image: alice-v2:latest
-        command: npm run-script dev
+    app:
+        container_name: "alice"
+        build: .
+        image: "alice-v2:latest"
+        command: "npm run-script dev"
         volumes:
             - .:/home/node/
         environment:
-            - NODE_ENV
+            - NODE_ENV=${NODE_ENV:-development}
+        links:
+            - mongodb
+    mongodb:
+        image: mongo:latest
+        container_name: "alice-mongo-container"
+        volumes:
+            - mongodata:/data/db
+        ports:
+            - "27017:27107"
+volumes:
+    mongodata:
