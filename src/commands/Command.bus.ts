@@ -83,6 +83,6 @@ commandBus.addPublicCommand('promote', new PromoteCommand);
  * Usage:
  * Permissions: Admin
  */
-commandBus.addPublicCommand('contest', new ContestCommand);
+commandBus.addHiddenCommand('contest', new ContestCommand);
 
 export {commandBus as CommandBus}
