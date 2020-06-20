@@ -2,5 +2,6 @@ auth.json
 info
 node_modules/
 dist/
+data/
 secret/*
 !secret/auth.template.json
