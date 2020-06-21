@@ -1,9 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 import { Message, TextChannel, MessageEmbed, MessageAttachment } from 'discord.js';
-import { ContestData, ContestFile, ContestConfig } from './exports';
+import { ContestData, ContestFile, ContestConfig, BotConfig } from './exports';
 import { table, getBorderCharacters } from 'table';
 import { createDecipher } from 'crypto';
+
 
 export function selectFiles(files: {[key: string]: ContestFile}, entryCount: number, message: Message): {[key: string]: ContestFile} {
     if(entryCount > Object.keys(files).length) {
@@ -47,6 +48,31 @@ export function selectFiles(files: {[key: string]: ContestFile}, entryCount: num
         }
     }
     return files;
+}
+
+export function checkAuthorization(message: Message) {
+    if (message.member.hasPermission('ADMINISTRATOR')) {
+        return;
+    }
+
+    let botConfig: BotConfig =  JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/bot.config.json")).toString());
+    for (let role of botConfig.adminRoles) {
+        if(message.member.roles.cache.has(role)) {
+            return;
+        }
+    }
+
+    let contestConfig: ContestConfig  = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/contest_data/contest.config.json")).toString());
+    for (let x in contestConfig.contestAdminRoles) {
+        if(message.member.roles.cache.has(contestConfig.contestAdminRoles[x])) {
+            return;
+        }
+    }
+
+    console.log("User does not have required authority for command.");
+    let e = new Error('Authorization Error');
+    e.message = 'User does not have required authorization level for command.';
+	throw e;
 }
 
 export function validate(attachment: MessageAttachment) { // todo

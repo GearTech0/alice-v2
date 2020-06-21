@@ -1,7 +1,10 @@
 info
 node_modules/
 dist/
-/data/*
+/data/*.*
+/data/contest_data/*
+!/data/bot.config.json
+!/data/contest_data/contest.config.json
 !data/templates
 /secret/*
 npm-debug.log

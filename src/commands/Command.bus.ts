@@ -29,6 +29,9 @@ class CommandBus {
             if (!e.message.includes("Cannot read property 'action' of undefined")) {
                 console.log(e);
             }
+            if(e.name === 'Authorization Error') {
+                message.reply("You do no have permission to use that command.");
+            }
             message.reply(`The command: { ${commandName} } is unavailable.`);
         }
     }

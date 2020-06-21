@@ -18,16 +18,17 @@ export default class ContestCommand extends Command {
 	// This should read through the google drive folder, and choose N sample files in the root folder and save choice somewhere to be used when viewing list
 	// Files to be added prior to starting via !Contest add
 	public async start(args: Array<string>, message: Message) {
+		Contest.checkAuthorization(message);
 		if(!args[0]) {
 			console.log("Please provide name for contest, !contest start <name>. \n ex: !contest start New Contest");
 			message.reply("Please provide name for contest, !contest start <name>. \n ex: !contest start New Contest");
 			return;
 		}
 
-		const config: ContestConfig = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/ContestData/ContestConfig.json")).toString());
+		const config: ContestConfig = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/contest_data/contest.config.json")).toString());
 		if(!config.channelName) {
 			console.error("No contest channel name set within config.");
-			message.reply("Please set contest channel within /data/ContestData/ContestConfig.json");
+			message.reply("Please set contest channel within /data/contest_data/contest.config.json");
 			return;
 		}
         if(Object.keys(config.reactions).length < config.sampleEntries) {
@@ -46,7 +47,7 @@ export default class ContestCommand extends Command {
 		}
 		let channelId = channel.id;
 		let contestName = args.join(" ");
-		if(fs.existsSync(path.join(__dirname, `../../../data/ContestData/${serverId}/${contestName}`))) {
+		if(fs.existsSync(path.join(__dirname, `../../../data/contest_data/${serverId}/${contestName}`))) {
 			console.log("There is already an ongoing contest with the given name.");
 			message.reply("There is already an ongoing contest with the given name.");
 			return;
@@ -93,7 +94,7 @@ export default class ContestCommand extends Command {
   			"messageId": messageId,
   			"entries": files
 		}
-		let filePath = path.join(__dirname,`../../../data/ContestData/${serverId}/${contestName}`);
+		let filePath = path.join(__dirname,`../../../data/contest_data/${serverId}/${contestName}`);
 		if(!fs.existsSync(filePath)){
 			fs.mkdirSync(filePath, { recursive: true});
 		}
@@ -103,6 +104,7 @@ export default class ContestCommand extends Command {
 
 	// Advance contest from Sample Voting to Submission Voting
 	public async advance(args: Array<string>, message: Message) {
+		Contest.checkAuthorization(message);
 		if(!args[0]) {
 			console.log("Please provide name for contest, !contest advance <name>. \n ex: !contest start Running Contest");
 			message.reply("Please provide name for contest, !contest advance <name>. \n ex: !contest start Running Contest");
@@ -110,7 +112,7 @@ export default class ContestCommand extends Command {
 		}
 		let serverId = message.guild.id;
 		let contestName = args.join(" ");
-		let filePath = path.join(__dirname, `../../../data/ContestData/${serverId}/${contestName}`)
+		let filePath = path.join(__dirname, `../../../data/contest_data/${serverId}/${contestName}`)
 		if(!fs.existsSync(filePath)) {
 			console.log("There is no ongoing contest with given name");
 			message.reply("There is no ongoing contest with given name");
@@ -181,6 +183,7 @@ export default class ContestCommand extends Command {
 		return;
 	}
 
+	// Submit a file for voting to a contest in the submission phase
 	public async submit(args: Array<string>, message: Message) {
 		if(!args[0]) {
 			console.log("Please provide name for contest, !contest submit <name>. \n ex: !contest submit Running Contest");
@@ -189,7 +192,7 @@ export default class ContestCommand extends Command {
 		}
 		let serverId = message.guild.id;
 		let contestName = args.join(" ");
-		let filePath = path.join(__dirname, `../../../data/ContestData/${serverId}/${contestName}`);
+		let filePath = path.join(__dirname, `../../../data/contest_data/${serverId}/${contestName}`);
 		if(!fs.existsSync(filePath)) {
 			console.log("There is no ongoing contest with given name");
 			message.reply("There is no ongoing contest with given name");
@@ -208,7 +211,7 @@ export default class ContestCommand extends Command {
 		}
 		let channel = await message.guild.channels.resolve(data.contestChannelId) as TextChannel;
 		let voteMessage = await channel.messages.fetch(data.messageId);
-		let config: ContestConfig = JSON.parse(fs.readFileSync(path.join(__dirname, `../../../data/ContestData/ContestConfig.json`)).toString());
+		let config: ContestConfig = JSON.parse(fs.readFileSync(path.join(__dirname, `../../../data/contest_data/contest.config.json`)).toString());
 		let mEmbed = voteMessage.embeds[0];
 		let entryCount = mEmbed.fields.length;
 
@@ -227,6 +230,7 @@ export default class ContestCommand extends Command {
 		for (let submission of Object.values(data.entries)) {
 			if (submission.submitter === submitter.id) {
 				message.reply("You have already submitted your entry for this contest.");
+				message.delete();
 				return;
 			}
 		}
@@ -422,12 +426,15 @@ export default class ContestCommand extends Command {
 			try{
 					this[func](args, message);
 			}
-			catch (Error) {
-					if (Error.name === 'TypeError') { 
-						console.error("Invalid Command"); console.error(Error.name+": " + Error.message); 
+			catch (error) {
+					if (error.name === 'Authorization Error') {
+						throw error;
+					}
+					if (error.name === 'TypeError') { 
+						console.error("Invalid Command"); console.error(Error.name+": " + error.message); 
 						message.reply("Invalid Sub-command. Please refer to !Contest help for list of Sub-commands and their use.");
 					} 
-						else {console.error(Error.name+": " + Error.message); }
+						else {console.error(Error.name+": " + error.message); }
 					}
 		}
 		return;
