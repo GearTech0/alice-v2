@@ -29,11 +29,11 @@ export interface VoteInfo {
   messageId: string;
   sample?: ContestFile;
   entries?: { [key: string]: ContestFile };
-  winners?: [ { 
+  winners?: Array <{ 
     votes: number;
     file: ContestFile;
     UUID: string;
-  } ]
+  }>;
 }
 
 export interface BotConfig {

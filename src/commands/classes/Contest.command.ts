@@ -48,8 +48,8 @@ export default class ContestCommand extends Command {
 		let channelId = channel.id;
 		let contestName = args.join(" ");
 		if(fs.existsSync(path.join(__dirname, `../../../data/contest_data/${serverId}/${contestName}`))) {
-			console.log("There is already an ongoing contest with the given name.");
-			message.reply("There is already an ongoing contest with the given name.");
+			console.log("There is already a contest with the given name.");
+			message.reply("There is already a contest with the given name.");
 			return;
 		}
 
@@ -100,6 +100,7 @@ export default class ContestCommand extends Command {
 				fs.mkdirSync(filePath, { recursive: true});
 			}
 			fs.writeFileSync(filePath+`/ContestVoteInfo.json`, JSON.stringify(info, null, 2),{ flag: 'w' });
+			console.log("Data successfully saved.");
 		}
 		catch(e) {
 			console.error("An error occured while saving contest data.");
@@ -149,21 +150,13 @@ export default class ContestCommand extends Command {
 			if(reacCount.length >= Object.keys(data.entries).length){ break; }
 		}
 
-		let winners: [ {
-			"emoji": any,
-			"file": ContestFile,
-			"UUID": string
-		} ];
+		let winners:  Array<{"emoji": any, "file": ContestFile, "UUID": string}> = [];
 		let max = 0;
 		for(let votes of reacCount) {
 			max = votes > max ? votes : max;
 		}
 		while(reacCount.includes(max)) {
-			let winner: {
-				"emoji": any,
-				"file": ContestFile,
-				"UUID": string
-			};
+			let winner: {"emoji": any, "file": ContestFile,	"UUID": string} = {emoji: undefined, file: undefined, UUID: undefined};
 			let x = reacCount.indexOf(max);
 			winner.emoji = reacEmoji[x];
 			let fileUUID = Object.keys(data.entries)[x];
@@ -175,13 +168,12 @@ export default class ContestCommand extends Command {
 			winners.push(winner);
 		}
 		let winner = winners[(Math.round(Math.random()*100))%winners.length];
-		let announcement = `The sample for our "${contestName}" contest has been chosen!\nShare your sound file with "!contest submit ${contestName}" in the comment to enter the contest!`;
+		let announcement = `The sample for our "${contestName}" contest has been chosen!\nShare your track file with "!contest submit ${contestName}" in the comment to enter the contest!`;
 		let mEmbed = new MessageEmbed();
 		mEmbed.setTitle(`${contestName}`);
 		mEmbed.setDescription(`Sample File:  [${winner.file.name}](${winner.file.url})\nVote for your favourite using the reactions!`);
 		let mEmbed2 = new MessageEmbed();
 		mEmbed2.setTitle('Submissions:');
-		//let contestMessage = await channel.createWebhook('Message Webhook').then(w => w.send(announcement, {embeds: [mEmbed, mEmbed2]}));
 		let contestMessage = await channel.send(announcement, mEmbed);
 
 		try {
@@ -201,6 +193,7 @@ export default class ContestCommand extends Command {
 			let pastEntrants: {[key: string]: ContestFile} = JSON.parse(fs.readFileSync(peFilePath).toString());
 			pastEntrants[winner.UUID] = winner.file;
 			fs.writeFileSync(peFilePath, JSON.stringify(pastEntrants, null, 2), { flag: 'w' });
+			console.log("Data successfully saved.");
 		}
 		catch(e) {
 			console.error("An error occured while attempting to update past entrants data.");
@@ -275,16 +268,17 @@ export default class ContestCommand extends Command {
 		let fileUrl = submission.url;
 		let uuid = UUID();
 
-		mEmbed.addField(`${Object.keys(config.reactions)[entryCount]}@${submitter.username}`, `[${fileName}](${fileUrl})`);
+		mEmbed.addField(`${Object.keys(config.reactions)[entryCount]} @${submitter.username}`, `[${fileName}](${fileUrl})`);
 		voteMessage.edit(voteMessage.content, mEmbed);
 		await voteMessage.react(Object.values(config.reactions)[entryCount] as any)
 		message.delete();
 		message.reply("Your submission has been entered into the contest.");
 
-		data.entries[uuid] = {name: fileName, url: fileUrl};
-		data.entries[uuid].submitter = submitter.id;
 		try {
+			data.entries[uuid] = {name: fileName, url: fileUrl};
+			data.entries[uuid].submitter = submitter.id;
 			fs.writeFileSync(filePath+`/ContestVoteInfo.json`, JSON.stringify(data, null, 2), { flag: 'w' });
+			console.log("Data successfully saved.");
 		}
 		catch(e) {
 			console.error("An error occured while saving contest data.");
@@ -296,7 +290,7 @@ export default class ContestCommand extends Command {
 	
 
 	// Tally vote and announce top 3(can be more in case of ties) as winners of Contest
-	public async end(args: Array<string>, message, Message) {
+	public async end(args: Array<string>, message: Message) {
 		Contest.checkAuthorization(message);
 		if(!args[0]) {
 			console.log("Please provide name for contest, !contest advance <name>. \n ex: !contest start Running Contest");
@@ -337,7 +331,7 @@ export default class ContestCommand extends Command {
 			reacCounts.push(reaction[1].count);
         }
 		
-		let winners: [{"file": ContestFile, "votes": number, "UUID": string}];
+		let winners: Array<{"file": ContestFile, "votes": number, "UUID": string}> = [];
 		while (winners.length < 3 && (winners.length < reacCounts.length)) {
 			let max = 0;
 			for (let count of reacCounts) {
@@ -345,7 +339,7 @@ export default class ContestCommand extends Command {
 			}
 
 			while (reacCounts.includes(max)) {
-				let winner: {"file": ContestFile, "votes": number, "UUID": string};
+				let winner: {"file": ContestFile, "votes": number, 	"UUID": string} = {file: undefined, votes: undefined, UUID: undefined};
 				let index = reacCounts.indexOf(max);
 				winner.votes = max;
 				winner.file = Object.assign(new Object, Object.values(entries)[index]);
@@ -362,10 +356,11 @@ export default class ContestCommand extends Command {
 		let announcement = `${contestName} has ended!`;
 		for (let x=0; x<winners.length; ++x) {
 			let place = places[x];
-			let string = `[${winners[x].file.name}](${winners[x].file.url})`;
+			let submitter =  await message.guild.members.fetch(winners[x].file.submitter);
+			let string = `${submitter} - [${winners[x].file.name}](${winners[x].file.url})`;
 			while (x+1 < winners.length && winners[x].votes === winners[x+1].votes) {
 				++x;
-				string += `\n[${winners[x].file.name}](${winners[x].file.url})`;
+				string += `\n@${winners[x].file.submitter} - [${winners[x].file.name}](${winners[x].file.url})`;
 			}
 			mEmbed.addField(`${place}, ${winners[x].votes} votes:`, string);
 		}
@@ -373,7 +368,7 @@ export default class ContestCommand extends Command {
 		
 		// Edit message from !advance to show contest submissions and voting are closed
 		let voteEmbed = voteMessage.embeds[0];
-		let embedText = `Sample File: [${data.sample.name}](${data.sample.url} \nSubmissions + Voting Are Closed)`;
+		let embedText = `Sample File: [${data.sample.name}](${data.sample.url}) \nSubmissions + Voting Are Closed`;
 		voteEmbed.setDescription(embedText);
 		let voteMessageText = `The ccontest "${contestName}" is now over! \nCheck the message below for the winners!`;
 		voteMessage.edit(voteMessageText, voteEmbed);
@@ -386,6 +381,7 @@ export default class ContestCommand extends Command {
 			data.messageId = contestMessage.id;
 			data.winners = winners;
 			fs.writeFileSync(filePath+`/ContestVoteInfo.json`, JSON.stringify(data, null, 2), { flag: 'w' });
+			console.log("Data successfully saved");
 		}
 		catch(e) {
 			console.error("An error occured while saving contest data.");
@@ -469,6 +465,7 @@ export default class ContestCommand extends Command {
 		try {
 			data.voteStage = 'terminated';
 			fs.writeFileSync(filePath+`/ContestVoteInfo.json`, JSON.stringify(data, null, 2), { flag: 'w' });
+			console.log("Data successfully saved");
 		}
 		catch(e) {
 			console.error("An error occured while saving contest data.");
