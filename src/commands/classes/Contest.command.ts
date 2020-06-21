@@ -358,7 +358,7 @@ export default class ContestCommand extends Command {
 		for (let x=0; x<winners.length; ++x) {
 			let place = places[x];
 			let string = `[${winners[x].file.name}](${winners[x].file.url})`;
-			while (x+1 < winners.length && winners[x].votes === winners[x+1].votes)) {
+			while (x+1 < winners.length && winners[x].votes === winners[x+1].votes) {
 				++x;
 				string += `\n[${winners[x].file.name}](${winners[x].file.url})`;
 			}
@@ -426,19 +426,21 @@ export default class ContestCommand extends Command {
 		}
 
 	// Clear Past Entrants data to add them back to applicant pool
-	public reset(){
-		let contestData = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/contestData.json")).toString());
-		console.log("Clearing Past Entrant records");
-		for(let entry in contestData.pastEntries){
-			delete contestData.pastEntries[entry];
+	public async reset(args: Array<string>, message: Message) {
+		let serverId = message.guild.id;
+		let peFilePath = path.join(__dirname, `../../../data/ContestData/${serverId}/pastSamples.json`);
+		if(!fs.existsSync(peFilePath)) {
+			message.reply("These is no data to reset.");
 		}
-		try{
-			fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"), JSON.stringify(contestData, null, 2),{ flag: 'w' });
+		try {
+			fs.unlinkSync(peFilePath);
 		}
-		catch(e){
-			console.error("Warning! Failure writing contest data to file after !contest reset!: "+e);
+		catch(e) {
+			console.error(`Error while attemping to delete past sample entrant file of server: ${serverId} \n    ${e.name}: ${e.message}`);
+			message.reply("Failed to reset data.")
 			return;
 		}
+		message.reply("Data reset.");
 		return;
 	}
 
