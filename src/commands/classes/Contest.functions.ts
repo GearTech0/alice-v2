@@ -14,7 +14,8 @@ export function selectFiles(files: {[key: string]: ContestFile}, entryCount: num
         message.reply("Failed to start contest, contact admin.");
         throw(err);
     }
-    let peFile = path.join(__dirname, "../../../data/ContestData/pastSamples.json");
+    let serverId = message.guild.id;
+    let peFile = path.join(__dirname, `../../../data/ContestData/${serverId}/pastSamples.json`);
     let pastEntrants: {[key: string]: ContestFile} = {};
     if(fs.existsSync(peFile)) {
         pastEntrants = JSON.parse(fs.readFileSync(peFile).toString());

@@ -149,18 +149,26 @@ export default class ContestCommand extends Command {
 			if(reacCount.length >= Object.keys(data.entries).length){ break; }
 		}
 
-		let winners = [];
+		let winners: [ {
+			"emoji": any,
+			"file": ContestFile,
+			"UUID": string
+		} ];
 		let max = 0;
 		for(let votes of reacCount) {
 			max = votes > max ? votes : max;
 		}
 		while(reacCount.includes(max)) {
-			let winner = {};
+			let winner: {
+				"emoji": any,
+				"file": ContestFile,
+				"UUID": string
+			};
 			let x = reacCount.indexOf(max);
-			winner["emoji"] = reacEmoji[x];
+			winner.emoji = reacEmoji[x];
 			let fileUUID = Object.keys(data.entries)[x];
-			winner["file"] = Object.assign(new Object, data.entries[fileUUID]);
-			winner["UUID"] = fileUUID;
+			winner.file = Object.assign(new Object, data.entries[fileUUID]);
+			winner.UUID = fileUUID;
 			delete data.entries[fileUUID];
 			reacEmoji.splice(x,1);
 			reacCount.splice(x,1);
@@ -180,13 +188,22 @@ export default class ContestCommand extends Command {
 			data.voteStage = 'submission';
 			data.entries = {};
 			data.messageId = contestMessage.id;
-			data.sample = winner;
+			data.sample = winner.file;
 			fs.writeFileSync(filePath+`/ContestVoteInfo.json`, JSON.stringify(data, null, 2), { flag: 'w' });
 		}
 		catch(e) {
 			console.error("An error occured while saving contest data.");
 			message.reply("An error has occured, please notify an admin");
 			throw e;
+		}
+		try {
+			let peFilePath =  path.join(__dirname, `../../../data/contest_data/${serverId}/pastSamples.json`);
+			let pastEntrants: {[key: string]: ContestFile} = JSON.parse(fs.readFileSync(peFilePath).toString());
+			pastEntrants[winner.UUID] = winner.file;
+			fs.writeFileSync(peFilePath, JSON.stringify(pastEntrants, null, 2), { flag: 'w' });
+		}
+		catch(e) {
+			console.error("An error occured while attempting to update past entrants data.");
 		}
 		return;
 	}
