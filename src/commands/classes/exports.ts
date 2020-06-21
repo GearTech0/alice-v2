@@ -24,7 +24,7 @@ export interface ContestConfig {
 }
 
 export interface VoteInfo {
-  voteStage: 'sample' | 'submission' | 'complete';
+  voteStage: 'sample' | 'submission' | 'complete' | 'terminated';
   contestChannelId: string;
   messageId: string;
   sample?: ContestFile;

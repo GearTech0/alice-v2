@@ -132,9 +132,9 @@ export default class ContestCommand extends Command {
 			message.reply("Contest is already past the sample vote phase.");
 			return;
 		}
-		if(data.voteStage === 'complete') {
-			console.log("Contest is already complete.");
-			message.reply("Contest is already complete.");
+		if(data.voteStage === 'complete' || data.voteStage === 'terminated') {
+			console.log("Contest has already ended.");
+			message.reply("Contest has already ended.");
 			return;
 		}
 		let channel = await message.guild.channels.resolve(data.contestChannelId) as TextChannel;
@@ -229,9 +229,9 @@ export default class ContestCommand extends Command {
 			message.reply("Contest is still in the sample vote phase");
 			return;
 		}
-		if(data.voteStage === 'complete') {
-			console.log("Contest is already complete.");
-			message.reply("Contest is already complete.");
+		if(data.voteStage === 'complete' || data.voteStage === 'terminated') {
+			console.log("Contest has already ended.");
+			message.reply("Contest has already ended.");
 			return;
 		}
 		let channel = await message.guild.channels.resolve(data.contestChannelId) as TextChannel;
@@ -317,15 +317,20 @@ export default class ContestCommand extends Command {
 			message.reply("Contest is still in the sample vote phase.");
 			return;
 		}
-		if(data.voteStage === 'complete') {
-			console.log("Contest is already complete.");
-			message.reply("Contest is already complete.");
+		if(data.voteStage === 'complete' || data.voteStage === 'terminated') {
+			console.log("Contest has already ended.");
+			message.reply("Contest has already ended.");
 			return;
 		}
 		let channel = await message.guild.channels.resolve(data.contestChannelId) as TextChannel;
 		let voteMessage = await channel.messages.fetch(data.messageId);
 		let entries = Object.assign(new Object, data.entries);
 		let cache = voteMessage.reactions.cache;
+
+		if (Object.keys(data.entries).length === 0) {
+			message.reply("There has not yet been any submission for that contest.");
+			return;
+		}
 
 		let reacCounts = [];
         for (let reaction of cache) {
@@ -441,6 +446,35 @@ export default class ContestCommand extends Command {
 			return;
 		}
 		message.reply("Data reset.");
+		return;
+	}
+
+	// Terminate contest from any phase, ending it without announcing a winner.
+	public async terminate(args: Array<string>, message: Message) {
+		Contest.checkAuthorization(message);
+		if(!args[0]) {
+			console.log("Please provide name for contest, !contest advance <name>. \n ex: !contest start Running Contest");
+			message.reply("Please provide name for contest, !contest advance <name>. \n ex: !contest start Running Contest");
+			return;
+		}
+		let serverId = message.guild.id;
+		let contestName = args.join(" ");
+		let filePath = path.join(__dirname, `../../../data/contest_data/${serverId}/${contestName}`)
+		if(!fs.existsSync(filePath)) {
+			console.log("There is no ongoing contest with given name");
+			message.reply("There is no ongoing contest with given name");
+			return;
+		}
+		let data: VoteInfo = JSON.parse(fs.readFileSync(filePath+`/ContestVoteInfo.json`).toString());		
+		try {
+			data.voteStage = 'terminated';
+			fs.writeFileSync(filePath+`/ContestVoteInfo.json`, JSON.stringify(data, null, 2), { flag: 'w' });
+		}
+		catch(e) {
+			console.error("An error occured while saving contest data.");
+			message.reply("An error has occured, please notify an admin");
+			throw e;
+		}
 		return;
 	}
 
