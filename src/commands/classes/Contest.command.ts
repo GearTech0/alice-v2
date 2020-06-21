@@ -182,6 +182,7 @@ export default class ContestCommand extends Command {
 			data.messageId = contestMessage.id;
 			data.sample = winner.file;
 			fs.writeFileSync(filePath+`/ContestVoteInfo.json`, JSON.stringify(data, null, 2), { flag: 'w' });
+			console.log("Data successfully saved.");
 		}
 		catch(e) {
 			console.error("An error occured while saving contest data.");
@@ -190,13 +191,16 @@ export default class ContestCommand extends Command {
 		}
 		try {
 			let peFilePath =  path.join(__dirname, `../../../data/contest_data/${serverId}/pastSamples.json`);
-			let pastEntrants: {[key: string]: ContestFile} = JSON.parse(fs.readFileSync(peFilePath).toString());
+			let pastEntrants: {[key: string]: ContestFile} = {};
+			if(fs.existsSync(peFilePath)) {
+				pastEntrants = JSON.parse(fs.readFileSync(peFilePath).toString());
+			}
 			pastEntrants[winner.UUID] = winner.file;
 			fs.writeFileSync(peFilePath, JSON.stringify(pastEntrants, null, 2), { flag: 'w' });
-			console.log("Data successfully saved.");
+			console.log("Past entrant data successfully saved.");
 		}
 		catch(e) {
-			console.error("An error occured while attempting to update past entrants data.");
+			console.error(`An error occured while attempting to update past entrants data. \n    ${e}`);
 		}
 		return;
 	}
@@ -255,6 +259,10 @@ export default class ContestCommand extends Command {
 		let submission: MessageAttachment;
 		try{
 			submission = Array.from(message.attachments.values())[0];
+			if(!submission){
+				message.reply("No file attachment found in message.");
+				return;
+			}
 		}catch (e){
 			//console.log(Array.from(message.attachments.values()).toLocaleString());
 			console.error("No message attachment");
@@ -472,6 +480,7 @@ export default class ContestCommand extends Command {
 			message.reply("An error has occured, please notify an admin");
 			throw e;
 		}
+		message.reply("Contest terminated.");
 		return;
 	}
 
