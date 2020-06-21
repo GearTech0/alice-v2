@@ -17,6 +17,7 @@ export interface ContestData { // to be removed
 }
 
 export interface ContestConfig {
+  contestAdminRoles?: Array<string>;
   channelName: string;
   reactions: {};
   sampleEntries: number;
@@ -26,5 +27,15 @@ export interface VoteInfo {
   voteStage: 'sample' | 'submission' | 'complete';
   contestChannelId: string;
   messageId: string;
+  sample?: ContestFile;
   entries?: { [key: string]: ContestFile };
+  winners?: [ { 
+    votes: number;
+    file: ContestFile;
+    UUID: string;
+  } ]
+}
+
+export interface BotConfig {
+  adminRoles: Array<string>;
 }

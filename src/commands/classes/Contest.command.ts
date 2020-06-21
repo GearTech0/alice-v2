@@ -4,7 +4,7 @@ import drive from 'googleapis';
 import path from 'path';
 import validUrl from 'valid-url';
 import { v4 as UUID } from 'uuid';
-import { Message, TextChannel, MessageEmbed, MessageAttachment } from 'discord.js';
+import { Message, TextChannel, MessageEmbed, MessageAttachment, MessageReaction} from 'discord.js';
 import { table, getBorderCharacters } from 'table';
 import { dataflow } from "googleapis/build/src/apis/dataflow";
 import { ContestData, ContestFile, ContestConfig, VoteInfo } from './exports';
@@ -94,11 +94,19 @@ export default class ContestCommand extends Command {
   			"messageId": messageId,
   			"entries": files
 		}
-		let filePath = path.join(__dirname,`../../../data/contest_data/${serverId}/${contestName}`);
-		if(!fs.existsSync(filePath)){
-			fs.mkdirSync(filePath, { recursive: true});
+		try {
+			let filePath = path.join(__dirname,`../../../data/contest_data/${serverId}/${contestName}`);
+			if(!fs.existsSync(filePath)){
+				fs.mkdirSync(filePath, { recursive: true});
+			}
+			fs.writeFileSync(filePath+`/ContestVoteInfo.json`, JSON.stringify(info, null, 2),{ flag: 'w' });
 		}
-		fs.writeFileSync(filePath+`/ContestVoteInfo.json`, JSON.stringify(info, null, 2),{ flag: 'w' });
+		catch(e) {
+			console.error("An error occured while saving contest data.");
+			message.reply("An error has occured, please notify an admin");
+			throw e;
+		}
+		
 		return;
 	}
 
@@ -159,11 +167,10 @@ export default class ContestCommand extends Command {
 			winners.push(winner);
 		}
 		let winner = winners[(Math.round(Math.random()*100))%winners.length];
-
 		let announcement = `The sample for our "${contestName}" contest has been chosen!\nShare your sound file with "!contest submit ${contestName}" in the comment to enter the contest!`;
 		let mEmbed = new MessageEmbed();
 		mEmbed.setTitle(`${contestName}`);
-		mEmbed.setDescription(`Sample file to use for your contest entry:  [${winner.file.name}](${winner.file.url})\nVote for your favourite using the reactions!`);
+		mEmbed.setDescription(`Sample File:  [${winner.file.name}](${winner.file.url})\nVote for your favourite using the reactions!`);
 		let mEmbed2 = new MessageEmbed();
 		mEmbed2.setTitle('Submissions:');
 		//let contestMessage = await channel.createWebhook('Message Webhook').then(w => w.send(announcement, {embeds: [mEmbed, mEmbed2]}));
@@ -173,11 +180,12 @@ export default class ContestCommand extends Command {
 			data.voteStage = 'submission';
 			data.entries = {};
 			data.messageId = contestMessage.id;
+			data.sample = winner;
 			fs.writeFileSync(filePath+`/ContestVoteInfo.json`, JSON.stringify(data, null, 2), { flag: 'w' });
 		}
 		catch(e) {
 			console.error("An error occured while saving contest data.");
-			message.reply("An error has occured, please contact an admin");
+			message.reply("An error has occured, please notify an admin");
 			throw e;
 		}
 		return;
@@ -201,7 +209,7 @@ export default class ContestCommand extends Command {
 		let data: VoteInfo = JSON.parse(fs.readFileSync(filePath+`/ContestVoteInfo.json`).toString());
 		if(data.voteStage === 'sample'){
 			console.log("Contest is is still in the sample vote phase.");
-			message.reply("Contest is still in the sample vote phase.");
+			message.reply("Contest is still in the sample vote phase");
 			return;
 		}
 		if(data.voteStage === 'complete') {
@@ -263,140 +271,142 @@ export default class ContestCommand extends Command {
 		}
 		catch(e) {
 			console.error("An error occured while saving contest data.");
-			message.reply("An error has occured, please contact an admin");
+			message.reply("An error has occured, please notify an admin");
 			throw e;
 		}
 		return;
 	}
 	
 
-	// Add sample file o GDrive to be used for Contest
-	// Can be added to at any time, sounds files to be stored in gdrive
-	public add(args: Array<string>, message: Message): void{
-		
-		let contestSamples = {samples: []};
-		
-		try {
-			//check that there is any previous data
-			let data = fs.readFileSync(path.join(__dirname, '../../../data/votingList.json'));
-			if (data) {
-				contestSamples = JSON.parse(data.toString());
-			}
-		} catch (e) {
-
-		} finally {
-			let url = args.join(' ');
-			if (validUrl.isUri(url)) {
-				contestSamples.samples.push(url);
-				fs.writeFileSync(path.join(__dirname, '../../../data/votingList.json'), JSON.stringify(contestSamples), { flag: 'w' });
-	
-				message.reply(`${url} has been added to the voting list. (◕‿◕✿)`)
-			} else {
-				message.reply('This is not a valid URL. Sorry. ༼☯﹏☯༽ \n\nIf you think this is an error, please let a Moderator or the Server Owner know.');
-				console.error(`ERROR: ${url} is not a valid url`);
-			}
-		}
-
-	}
-
 	// Tally vote and announce top 3(can be more in case of ties) as winners of Contest
-	// Winners get saved as Past Entries to be excluded from applicant pool in future contests
-	public end(args: Array<string>, message: Message): void{ 
-		let contestData: ContestData = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/contestData.json")).toString());
-		if(contestData.contestActive){
-			console.log("---Ending Contest---");
-			let reaction_numbers = ["\u0030\u20E3","\u0031\u20E3","\u0032\u20E3","\u0033\u20E3","\u0034\u20E3","\u0035\u20E3", "\u0036\u20E3","\u0037\u20E3","\u0038\u20E3","\u0039\u20E3"];
-			let files = contestData.entries;
-			console.log("Determining contest channel");
-			let contestChannel = message.guild.channels.cache.find((channel) => channel.name === contestData.contestChannelName) as TextChannel;
-			console.log("Successful");
-			
-			console.log("Determining Contest origin message");
-			contestChannel.messages.fetch(contestData.messageId).then(contestMessage => {
-				
-				let reactions = contestMessage.reactions.cache;
-				console.log("Successful");
-				let reacEmoji = [];
-				let reacCount = [];
-				for (let reaction of reactions){
-					reacEmoji.push(reaction[1].emoji);
-					reacCount.push(reaction[1].count);
-					if(reacCount.length >= Object.keys(files).length){ break; }
-				}
-
-				console.log("Determining winners");
-				let winners = [];
-				while(winners.length < 3 && (winners.length < reacCount.length)){
-					let max = 0;
-					for(let x of reacCount){
-						max = x > max ? x : max;
-					}
-					
-					while(reacCount.includes(max)){
-						let winner = {};
-						let x = reacCount.indexOf(max);
-						winner["emoji"] = reacEmoji[x];
-						winner["votes"] = reacCount[x];
-						let fileUUID = Object.keys(files)[x];
-						winner["file"] = Object.assign(new Object, files[fileUUID]);
-						winner["UUID"] = fileUUID;
-						delete files[fileUUID];
-						reacEmoji.splice(x,1);
-						reacCount.splice(x,1);
-						winners.push(winner);
-					}
-
-				}
-				console.log("Successful");
-
-				console.log("Creating announcement message");
-				let places = ["1st Place", "2nd Place", "3rd Place"];
-				let mEmbed = new MessageEmbed();
-				let announcement = "\nThe contest has ended and our winners are: "
-				for(let x=0; x<winners.length; ++x){
-					let names = "";
-					let place = places[x];
-					names += `[${winners[x].file.name}](${winners[x].file.url})\n`;
-					while((x+1 < winners.length) && (winners[x].votes == winners[x+1].votes)){
-						++x;
-						names += `[${winners[x].file.name}](${winners[x].file.url})\n`;
-					}
-					mEmbed.addField(`${place} | ${winners[x].votes} votes`, names);
-			
-				}
-				mEmbed.addField(":tada:CONGRATULATIONS:tada:", "\nLook forward to our next contest!");
-				console.log('Successful');
-				
-				for(let x=0; x<winners.length; ++x){
-
-					contestData.pastEntries[winners[x].UUID] = Object.assign(new Object, winners[x].file);
-				}
-				console.log("Writing contestData to file");
-				contestData.contestActive = false;
-				fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json") ,JSON.stringify(contestData, null, 2),{ flag: 'w' });
-				console.log("Successful");
-
-				contestChannel.send(announcement, {embed: mEmbed});
-
-				console.log("Contest has been Ended");
-				return;
-			}).catch(e => {
-				console.error("Contest End Failed: "+e);
-				return;
-			});
+	public async end(args: Array<string>, message, Message) {
+		Contest.checkAuthorization(message);
+		if(!args[0]) {
+			console.log("Please provide name for contest, !contest advance <name>. \n ex: !contest start Running Contest");
+			message.reply("Please provide name for contest, !contest advance <name>. \n ex: !contest start Running Contest");
+			return;
 		}
-		else{
-			console.log("No contest to end.");
-			message.reply("There is not an active contest.");
+		let serverId = message.guild.id;
+		let contestName = args.join(" ");
+		let filePath = path.join(__dirname, `../../../data/contest_data/${serverId}/${contestName}`)
+		if(!fs.existsSync(filePath)) {
+			console.log("There is no ongoing contest with given name");
+			message.reply("There is no ongoing contest with given name");
+			return;
 		}
+		let data: VoteInfo = JSON.parse(fs.readFileSync(filePath+`/ContestVoteInfo.json`).toString());
+		if(data.voteStage === 'sample'){
+			console.log("Contest is still in the sample vote phase.");
+			message.reply("Contest is still in the sample vote phase.");
+			return;
+		}
+		if(data.voteStage === 'complete') {
+			console.log("Contest is already complete.");
+			message.reply("Contest is already complete.");
+			return;
+		}
+		let channel = await message.guild.channels.resolve(data.contestChannelId) as TextChannel;
+		let voteMessage = await channel.messages.fetch(data.messageId);
+		let entries = Object.assign(new Object, data.entries);
+		let cache = voteMessage.reactions.cache;
+
+		let reacCounts = [];
+        for (let reaction of cache) {
+			reacCounts.push(reaction[1].count);
+        }
 		
+		let winners: [{"file": ContestFile, "votes": number, "UUID": string}];
+		while (winners.length < 3 && (winners.length < reacCounts.length)) {
+			let max = 0;
+			for (let count of reacCounts) {
+				max = count > max ? count : max;
+			}
+
+			while (reacCounts.includes(max)) {
+				let winner: {"file": ContestFile, "votes": number, "UUID": string};
+				let index = reacCounts.indexOf(max);
+				winner.votes = max;
+				winner.file = Object.assign(new Object, Object.values(entries)[index]);
+				winner.UUID = Object.keys(entries)[index];
+				delete entries[winner.UUID];
+				reacCounts.splice(index, 1);
+				winners.push(winner);
+			}
+		}
+
+		let places = ['1st Place', '2nd Place', '3rd Place'];
+		let mEmbed = new MessageEmbed();
+		mEmbed.setTitle(`${contestName} winners: `);
+		let announcement = `${contestName} has ended!`;
+		for (let x=0; x<winners.length; ++x) {
+			let place = places[x];
+			let string = `[${winners[x].file.name}](${winners[x].file.url})`;
+			while (x+1 < winners.length && winners[x].votes === winners[x+1].votes)) {
+				++x;
+				string += `\n[${winners[x].file.name}](${winners[x].file.url})`;
+			}
+			mEmbed.addField(`${place}, ${winners[x].votes} votes:`, string);
+		}
+		mEmbed.addField(":tada:CONGRATULATIONS:tada:", "\nLook forward to our next contest!");
+		
+		// Edit message from !advance to show contest submissions and voting are closed
+		let voteEmbed = voteMessage.embeds[0];
+		let embedText = `Sample File: [${data.sample.name}](${data.sample.url} \nSubmissions + Voting Are Closed)`;
+		voteEmbed.setDescription(embedText);
+		let voteMessageText = `The ccontest "${contestName}" is now over! \nCheck the message below for the winners!`;
+		voteMessage.edit(voteMessageText, voteEmbed);
+
+		// Send message announcing winners
+		let contestMessage = await channel.send(announcement, mEmbed);
+
+		try {
+			data.voteStage = 'complete';
+			data.messageId = contestMessage.id;
+			data.winners = winners;
+			fs.writeFileSync(filePath+`/ContestVoteInfo.json`, JSON.stringify(data, null, 2), { flag: 'w' });
+		}
+		catch(e) {
+			console.error("An error occured while saving contest data.");
+			message.reply("An error has occured, please notify an admin");
+			throw e;
+		}
+
 		return;
 	}
+	
 
 	public helpAction(args: Array<string>, message: Message): void{
 		message.reply(this.help);
 		return;
 	}
+
+		// Add sample file to GDrive to be used for Contest Sample Vote
+		public add(args: Array<string>, message: Message): void{
+		
+			let contestSamples = {samples: []};
+			
+			try {
+				//check that there is any previous data
+				let data = fs.readFileSync(path.join(__dirname, '../../../data/votingList.json'));
+				if (data) {
+					contestSamples = JSON.parse(data.toString());
+				}
+			} catch (e) {
+	
+			} finally {
+				let url = args.join(' ');
+				if (validUrl.isUri(url)) {
+					contestSamples.samples.push(url);
+					fs.writeFileSync(path.join(__dirname, '../../../data/votingList.json'), JSON.stringify(contestSamples), { flag: 'w' });
+		
+					message.reply(`${url} has been added to the voting list. (◕‿◕✿)`)
+				} else {
+					message.reply('This is not a valid URL. Sorry. ༼☯﹏☯༽ \n\nIf you think this is an error, please let a Moderator or the Server Owner know.');
+					console.error(`ERROR: ${url} is not a valid url`);
+				}
+			}
+	
+		}
 
 	// Clear Past Entrants data to add them back to applicant pool
 	public reset(){
