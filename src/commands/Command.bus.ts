@@ -36,13 +36,53 @@ class CommandBus {
 
 const commandBus = new CommandBus();
 
+/**
+ * Command: commands
+ * Usage:
+ * Permissions: All
+ */
 commandBus.addHiddenCommand('commands', new ListCommand);
+
+/**
+ * Command: graduate
+ * Usage:
+ * Permissions: Admin
+ */
 commandBus.addHiddenCommand('graduate', new GraduateCommand);
+
+/**
+ * Command: update
+ * Usage:
+ * Permissions: Admin
+ */
 commandBus.addHiddenCommand('update', new UpdateCommand);
 
+/**
+ * Command: assign
+ * Usage:
+ * Permissions: All (conditional)
+ */
 commandBus.addPublicCommand('assign', new AssignCommand);
+
+/**
+ * Command: greet
+ * Usage: 
+ * Permissions: All
+ */
 commandBus.addPublicCommand('greet', new GreetCommand);
+
+/**
+ * Command: promote
+ * Usage: 
+ * Permissions: All
+ */
 commandBus.addPublicCommand('promote', new PromoteCommand);
-commandBus.addPublicCommand('contest', new ContestCommand);
+
+/**
+ * Command: contest
+ * Usage:
+ * Permissions: Admin
+ */
+commandBus.addHiddenCommand('contest', new ContestCommand);
 
 export {commandBus as CommandBus}
