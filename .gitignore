@@ -1,7 +1,7 @@
-auth.json
 info
 node_modules/
 dist/
-data/
-secret/*
-!secret/auth.template.json
+/data/*
+!data/templates
+/secret/*
+npm-debug.log

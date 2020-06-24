@@ -61,7 +61,7 @@ export default class AssignCommand extends Command {
                 }
 
                 // Graduates cannot become students
-                if (this.checkAdmin(member)) {
+                if (this.isUnauthorized(member)) {
                     message.reply("You are not allowed to use this command. If you think this is an error, please contact an admin.")
                     continue;
                 }

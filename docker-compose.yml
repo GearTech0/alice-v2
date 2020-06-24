@@ -1,0 +1,11 @@
+version: '2.4'
+services:
+    alice:
+        build:
+            context: .
+        image: alice-v2:latest
+        command: npm run-script dev
+        volumes:
+            - .:/home/node/
+        environment:
+            - NODE_ENV
