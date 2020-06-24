@@ -1,8 +1,8 @@
 import * as Discord from 'discord.js';
 import auth from '../secret/auth.json';
-import { CommandBus } from './commands/Command.bus';
 import Drive from './gdrive/Drive.gdrive';
-import OAuth from './gdrive/OAuth.gdrive'
+import { GoogleAPIOAuth } from './gdrive/OAuth.gdrive';
+import { CommandBus } from './commands/Command.bus';
 import { map, concatAll } from 'rxjs/operators';
 import { ReturnEnvelope } from './exports';
 
@@ -24,4 +24,4 @@ bot.on('message', (oMessage) => {
     }
 });
 
-bot.login(auth.token);
+bot.login(auth.tokendev);

@@ -22,6 +22,7 @@ class CommandBus {
 
     public useCommand(commandName: string, args: Array<string>, message: Message) {
         try {
+            console.log(commandName);
             this.all[commandName].action(args, message);
         } catch (e) {
             console.log(e);

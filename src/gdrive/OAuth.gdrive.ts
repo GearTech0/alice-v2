@@ -5,19 +5,54 @@ import fs from 'fs';
 import { Observable, Observer, of } from 'rxjs';
 import { map, concatAll, tap } from 'rxjs/operators';
 import { ReturnEnvelope } from '../exports';
+import { GoogleOAuthStatus } from './exports.googleapi';
 
-const SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly'];
+const SCOPES = ['https://www.googleapis.com/auth/drive'];
 
 
-export default class GoogleAuth {
+class GoogleAuth {
 
     public TOKEN_PATH = path.join(__dirname, '../../secret/token.json');
+    public status: GoogleOAuthStatus = 'unverified';
+    private authClient;
 
     constructor() {
-        
+        this.authorization().subscribe({
+            complete: () => {
+                console.log('GoogleAPIs authorized');
+            }
+        })
     }
 
-    public Authorize(): Observable<ReturnEnvelope> {
+    public getAuthClient(authClient): any {
+        return this.authClient;
+    }
+
+    public getStatus(): GoogleOAuthStatus {
+        return this.status;
+    }
+
+    private authorization(): Observable<ReturnEnvelope> {
+        return this.beginAuthorization()
+            .pipe(
+                map((env) => {
+                    return this.authorize(env.data)
+                        .pipe(
+                            map((value: ReturnEnvelope) => {
+                                if (value.status === 'unverified') {
+                                    console.log('verifying')
+                                    return this.getAccessToken(value.data);
+                                }
+                                return of(value);
+                            }),
+                            concatAll()
+                        );
+                }),
+                concatAll()
+            );
+    }
+
+    private beginAuthorization(): Observable<ReturnEnvelope> {
         return new Observable((obs: Observer<ReturnEnvelope>) => {
             fs.readFile(path.join(__dirname, '../../secret/credentials.json'), (err, content: Buffer) => {
                 if (err) {
@@ -25,20 +60,10 @@ export default class GoogleAuth {
                     obs.complete();
                     return;
                 }
-                this.authorize(JSON.parse(content.toString()))
-                    .pipe(
-                        map((value: ReturnEnvelope) => {
-                            if (value.status === 'unverified') {
-                                return this.getAccessToken(value.data);
-                            }
-                            return of(value);
-                        }),
-                        concatAll(),
-                        tap((env) => {
-                            obs.next(env);
-                            obs.complete();
-                        })
-                    ).subscribe();
+
+                console.log('loaded Google oAuth credentials')
+                obs.next({data: JSON.parse(content.toString())});
+                obs.complete();
             });
         });
     }
@@ -52,8 +77,15 @@ export default class GoogleAuth {
                 if (err) {
                     obs.next({status: 'unverified', data: oAuth2Client});
                     obs.complete();
+                    return;
                 }
+
                 oAuth2Client.setCredentials(JSON.parse(token.toString()));
+
+                this.authClient = oAuth2Client; // Save client for Google Functions
+                this.status = 'verified';
+                console.log('saved oAuth client and verified');
+
                 obs.next({status: 'verified', data: oAuth2Client});
                 obs.complete();
             });
@@ -98,3 +130,7 @@ export default class GoogleAuth {
         });
     }
 }
+
+var GoogleAPIOAuth = new GoogleAuth();
+
+export { GoogleAPIOAuth }

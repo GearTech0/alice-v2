@@ -1,35 +1,46 @@
-import OAuth from './OAuth.gdrive';
 import { google } from 'googleapis';
 import { Observable, Observer } from 'rxjs';
 import { ReturnEnvelope } from '../exports';
+import DriveFile from './File.gdrive';
 
+/**
+ * All functions to interface with GDrive
+ */
 export default class Drive {
-    constructor() {
-        
-    }
+    
+    constructor() {}
 
-    public list(auth): Observable<ReturnEnvelope> {
+    /**
+     * List files from a path in Google Drive
+     *  Obs errors:
+     *      API_ERROR - The API has returned an error
+     * @param auth The auth object recieved from OAuth.gdrive.ts { Authorize$ }
+     * @param fileID The ID of the folder to list from *can be found the link to the folder*
+     * 
+     */
+    public list(auth, fileID: string): Observable<ReturnEnvelope> {
         return new Observable((obs: Observer<ReturnEnvelope>) => {
             const drive = google.drive({version:"v3", auth});
-            console.log('here')
+
+            // Call list function from drive api
             drive.files.list({
                 fields: 'nextPageToken, files(id, name, webContentLink)',
-                q: "'1Q6VhNhjiWhDgXZOUCSvPFCut5HLLngvf' in parents"
+                q: `'${fileID}' in parents`
             }, (err, res) => {
                 if (err) {
-                    console.error('The API returned an error: ', err);
                     obs.error({message: 'The API returned an error', data: err});
                     obs.complete();
                 }
-                console.log('there')
+
                 const files = res.data.files;
                 if (files.length) {
                     console.log('Files: ');
                     
-                    let fileList = [];
+                    let fileList: Array<DriveFile> = [];
                     files.map((file) => {
-                        fileList.push({name: file.name, id: file.id, link: file.webContentLink});
-                        console.log(`${file.name} (${file.id})`);
+                        let f = new DriveFile(file.id, file.name, file.webContentLink);
+                        fileList.push(f);
+                        console.log(`${f.name} (${f.id}) {${f.webContentLink}}`);
                     });
 
                     obs.next({
@@ -37,10 +48,9 @@ export default class Drive {
                     });
                     obs.complete();
                 } else {
-                    console.log('No files found');
-
                     obs.next({
-                        message: "No files found"
+                        message: "No files found",
+                        data: []
                     })
                     obs.complete();
                 }
