@@ -1,16 +1,17 @@
 import Command from './Command';
 import fs from 'fs';
-import drive from 'googleapis';
 import path from 'path';
 import validUrl from 'valid-url';
+import Drive from '../../googleapis/Drive.gdrive';
+import GoogleAuth from '../../googleapis/OAuth.gdrive';
+import BotConfig from '../../../bot.config.json';
+import { ContestData, ContestFile } from './exports';
 import { Message, TextChannel, MessageEmbed } from 'discord.js';
 import { table, getBorderCharacters } from 'table';
-import { dataflow } from "googleapis/build/src/apis/dataflow";
-import { ContestData, ContestFile } from './exports';
+import { ReturnEnvelope } from '../../exports';
 
 export default class ContestCommand extends Command {
   public help = "Available Sub-commands for '!Contest': \nStart \nAdd \nVote \nEnd \nReset \nHelp "
-
 
   // Initiate a contest, announcing it to channel
   // This should read through the google drive folder, and choose N sample files in the root folder and save choice somewhere to be used when viewing list
@@ -24,149 +25,157 @@ export default class ContestCommand extends Command {
     console.log("---Contest Creation Started---")
     let reacts = contestData.reactions;
     let failMes = "Failed to start contest, please try again or contact an Admin.";
-    let files: {[key: string]: ContestFile} = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/templates/sampleFiles.json")).toString()); // Replace with file Retrieval from GDrive once available
-    let pastEntrants = contestData.pastEntries;
-    let entryCount;
-    let config = { //  config for Embed table formatting
-      border: getBorderCharacters('void'),
-      columnDefault: {
-        paddingLeft: 0,
-        paddingRight: 1
-      },
-      drawHorizontalLine: () => {
-        return false;
-      }
-    };
 
+    let gDrive = new Drive(); // initialize GDrive object
+    gDrive.list(GoogleAuth.authClient, BotConfig.DriveFileID) // Pull files from GDrive
+      .subscribe({
+        next: (value: ReturnEnvelope) => {
 
-    try{
-      let count = args.shift();
-      console.log("count: "+count);
-      if(!count) {throw(new Error);}
-      entryCount = parseInt(count);
-      if(entryCount < 3){
-        console.log("Entry count must be 3 or more.");
-        throw new Error;
-      }
-      console.log("entryCount:  "+entryCount);
-    }
-    catch(e){
-      console.log("Argument for entry count is invalid or not provided, leaving as default value.");
-      entryCount = 5;
-    }
-
-    console.log("Starting Entry Selection");
-
-    if(entryCount > Object.keys(reacts).length){  
-      let err = new Error();
-      err.name = "Reaction Limit Error";
-      err.message = "Not enough reactions for chosen entry amount.";
-      throw(err);
-    }
-    console.log("Reaction limit check passed");
-
-
-    console.log("Current Applicant count: "+Object.keys(files).length);
-    console.log("Current Past Entry count: " + Object.keys(pastEntrants).length);
-    if(entryCount > Object.keys(files).length){
-      let err = new Error();
-      err.name = "Entrant Count Error";
-      err.message = "Not enough aplicants to fill entry count.";
-      throw(err);
-    }
-    console.log("Applicant count check passed");
-
-
-    for(let uuid in pastEntrants){
-      delete files[uuid];
-    }
-    if(Object.keys(files).length < entryCount) {
-      console.log(`Not enough unused entries, pulling ${entryCount-Object.keys(files).length} from Past Entrants`);
-      while(Object.keys(files).length < entryCount) {
-        let uuid = Object.keys(pastEntrants)[0];
-        files[uuid] = pastEntrants[uuid];
-        delete pastEntrants[uuid];
-      }
-    }else {
-      while(Object.keys(files).length > entryCount) {
-        let fileCount = Object.keys(files).length
-        let dif = fileCount - entryCount;
-        let pos = Math.round(Math.random()*100000)%fileCount;
-        let dfe = fileCount - pos;
-        let num = 0;
-        if( dif == 1 || dfe == 1){
-          num = 1
-        }else{
-          num = Math.round(Math.random()*100000)%(dif >= dfe ? dfe : dif);
-        }
-        for(let x=0; x<num; ++x){
-          let uuid = Object.keys(files)[pos+x];
-          delete files[uuid];
-        }
-      }
-    }
-    console.log("Entrant Selection Successful");
-
-    contestData.entries = files;
-
-    console.log("Writing data to file");
-    
-    fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"), JSON.stringify(contestData, null, 2),{ flag: 'w' });    
-    console.log("Successful");
-
-
-    console.log("Creating announcement string");
-    let announcement = "\n:musical_note::musical_note:Its time for another contest!:musical_note::musical_note: ";
-    announcement += "\nPlace your vote by clicking the corresponding reaction! \n"
-    
-    let data: Array<[string, string]> = [];
-    let y = 0;
-    for(let entry of Object.values(contestData.entries)) {
-      data.push([`${Object.keys(reacts)[y]}`, `[${entry.name}](${entry.url})\n`]);
-      ++y;
-    }
-    console.log("Successful");
-
-    console.log("Determining Server 'contests' channel");
-    let channel;
-    try {
-      channel = message.guild.channels.cache.find(channel => channel.name === contestData.contestChannelName);
-    } catch (e) {
-      console.error("Error! Could not find contest channel!: "+e);
-      message.reply("Server contests channel not found, contact Admin");
-      return;
-    }
-    console.log("Successful");
-
-    console.log("Sending announcement");
-
-    let tbl = table(data, config);
-    let mEmbed = new MessageEmbed().addField("Contest Entries", tbl);
-    channel.send(announcement, {embed: mEmbed}).then(async function (message: Message){
+          let files: {[key: string]: ContestFile} = value.data;
+          let pastEntrants = contestData.pastEntries;
+          let entryCount;
+          let config = { //  config for Embed table formatting
+            border: getBorderCharacters('void'),
+            columnDefault: {
+              paddingLeft: 0,
+              paddingRight: 1
+            },
+            drawHorizontalLine: () => {
+              return false;
+            }
+          };
       
-      contestData.messageId = message.id;
-    
-      for(let x =0; x < entryCount; ++x) {
-        await message.react(Object.values(reacts)[x] as any);
-      }
       
-      contestData.contestChannelId = message.channel.id;
-      fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"), JSON.stringify(contestData, null, 2),{ flag: 'w' });
-      return;
-    }).catch(function (e){
-      console.error("Error creating contest message!"+e);
-      return;
-    });
-    console.log("Successful");
-
-    contestData.contestActive = true;
-    console.log("Writing data to file");
-    fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"), JSON.stringify(contestData, null, 2),{ flag: 'w' });
-    console.log("Contest Data successfully written to file.");
-
-    console.log("---Contest Successfully Started---");
-    message.reply("Contest has been started!");
-    return;
+          try{
+            let count = args.shift();
+            console.log("count: "+count);
+            if(!count) {throw(new Error);}
+            entryCount = parseInt(count);
+            if(entryCount < 3){
+              console.log("Entry count must be 3 or more.");
+              throw new Error;
+            }
+            console.log("entryCount:  "+entryCount);
+          }
+          catch(e){
+            console.log("Argument for entry count is invalid or not provided, leaving as default value.");
+            entryCount = 5;
+          }
+      
+          console.log("Starting Entry Selection");
+      
+          if(entryCount > Object.keys(reacts).length){  
+            let err = new Error();
+            err.name = "Reaction Limit Error";
+            err.message = "Not enough reactions for chosen entry amount.";
+            throw(err);
+          }
+          console.log("Reaction limit check passed");
+      
+      
+          console.log("Current Applicant count: "+ Object.keys(files).length);
+          console.log("Current Past Entry count: " + Object.keys(pastEntrants).length);
+          if(entryCount > Object.keys(files).length){
+            let err = new Error();
+            err.name = "Entrant Count Error";
+            err.message = "Not enough aplicants to fill entry count.";
+            throw(err);
+          }
+          console.log("Applicant count check passed");
+      
+          for(let uuid in pastEntrants){
+            delete files[uuid];
+          }
+          if(Object.keys(files).length < entryCount) {
+            console.log(`Not enough unused entries, pulling ${entryCount-Object.keys(files).length} from Past Entrants`);
+            while(Object.keys(files).length < entryCount) {
+              let uuid = Object.keys(pastEntrants)[0];
+              files[uuid] = pastEntrants[uuid];
+              delete pastEntrants[uuid];
+            }
+          }else {
+            while(Object.keys(files).length > entryCount) {
+              let fileCount = Object.keys(files).length
+              let dif = fileCount - entryCount;
+              let pos = Math.round(Math.random()*100000)%fileCount;
+              let dfe = fileCount - pos;
+              let num = 0;
+              if( dif == 1 || dfe == 1){
+                num = 1
+              }else{
+                num = Math.round(Math.random()*100000)%(dif >= dfe ? dfe : dif);
+              }
+              for(let x=0; x<num; ++x){
+                let uuid = Object.keys(files)[pos+x];
+                delete files[uuid];
+              }
+            }
+          }
+          console.log("Entrant Selection Successful");
+      
+          contestData.entries = files;
+      
+          console.log("Writing data to file");
+          
+          fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"), JSON.stringify(contestData, null, 2),{ flag: 'w' });    
+          console.log("Successful");
+      
+      
+          console.log("Creating announcement string");
+          let announcement = "\n:musical_note::musical_note:Its time for another contest!:musical_note::musical_note: ";
+          announcement += "\nPlace your vote by clicking the corresponding reaction! \n";
+          
+          let data: Array<[string, string]> = [];
+          let y = 0;
+          for(let entry of Object.values(contestData.entries)) {
+            data.push([`${Object.keys(reacts)[y]}`, `[${entry.name}](${entry.webContentLink})\n`]);
+            ++y;
+          }
+          console.log("Successful");
+      
+          console.log("Determining Server 'contests' channel");
+          let channel;
+          try {
+            channel = message.guild.channels.cache.find(channel => channel.name === contestData.contestChannelName);
+          } catch (e) {
+            console.error("Error! Could not find contest channel!: "+e);
+            message.reply("Server contests channel not found, contact Admin");
+            return;
+          }
+          console.log("Successful");
+      
+          console.log("Sending announcement");
+      
+          let tbl = table(data, config);
+          console.log(tbl);
+          let mEmbed = new MessageEmbed().addField("Contest Entries", tbl);
+          channel.send(announcement, {embed: mEmbed}).then(async function (message: Message){
+            
+            contestData.messageId = message.id;
+          
+            for(let x =0; x < entryCount; ++x) {
+              await message.react(Object.values(reacts)[x] as any);
+            }
+            
+            contestData.contestChannelId = message.channel.id;
+            fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"), JSON.stringify(contestData, null, 2),{ flag: 'w' });
+            return;
+          }).catch(function (e){
+            console.error("Error creating contest message!"+e);
+            return;
+          });
+          console.log("Successful");
+      
+          contestData.contestActive = true;
+          console.log("Writing data to file");
+          fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"), JSON.stringify(contestData, null, 2),{ flag: 'w' });
+          console.log("Contest Data successfully written to file.");
+      
+          console.log("---Contest Successfully Started---");
+          message.reply("Contest has been started!");
+          return;
+        }
+      });
     
   }
 

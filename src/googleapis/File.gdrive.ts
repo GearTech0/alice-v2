@@ -6,6 +6,7 @@ export default class DriveFile {
     public id: string;
     public name: string;
     public webContentLink: string;
+    public shortlink: string;
 
     constructor(id: string, name: string, webContentLink: string) {
         this.id = id;

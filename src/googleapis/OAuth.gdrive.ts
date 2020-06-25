@@ -10,37 +10,27 @@ import { GoogleOAuthStatus } from './exports.googleapi';
 const SCOPES = ['https://www.googleapis.com/auth/drive'];
 
 
-class GoogleAuth {
+export default class GoogleAuth {
 
     public TOKEN_PATH = path.join(__dirname, '../../secret/token.json');
     public status: GoogleOAuthStatus = 'unverified';
-    private authClient;
+    public static authClient;
 
-    constructor() {
-        this.authorization().subscribe({
-            complete: () => {
-                console.log('GoogleAPIs authorized');
-            }
-        })
-    }
-
-    public getAuthClient(authClient): any {
-        return this.authClient;
-    }
+    constructor() {}
 
     public getStatus(): GoogleOAuthStatus {
         return this.status;
     }
 
-    private authorization(): Observable<ReturnEnvelope> {
-        return this.beginAuthorization()
+    public init(): Observable<ReturnEnvelope> {
+        return this.getOAuthCredentials()
             .pipe(
                 map((env) => {
                     return this.authorize(env.data)
                         .pipe(
                             map((value: ReturnEnvelope) => {
                                 if (value.status === 'unverified') {
-                                    console.log('verifying')
+                                    console.log('verifying');
                                     return this.getAccessToken(value.data);
                                 }
                                 return of(value);
@@ -52,7 +42,7 @@ class GoogleAuth {
             );
     }
 
-    private beginAuthorization(): Observable<ReturnEnvelope> {
+    private getOAuthCredentials(): Observable<ReturnEnvelope> {
         return new Observable((obs: Observer<ReturnEnvelope>) => {
             fs.readFile(path.join(__dirname, '../../secret/credentials.json'), (err, content: Buffer) => {
                 if (err) {
@@ -82,7 +72,7 @@ class GoogleAuth {
 
                 oAuth2Client.setCredentials(JSON.parse(token.toString()));
 
-                this.authClient = oAuth2Client; // Save client for Google Functions
+                GoogleAuth.authClient = oAuth2Client; // Save client for Google Functions
                 this.status = 'verified';
                 console.log('saved oAuth client and verified');
 
@@ -130,7 +120,3 @@ class GoogleAuth {
         });
     }
 }
-
-var GoogleAPIOAuth = new GoogleAuth();
-
-export { GoogleAPIOAuth }
