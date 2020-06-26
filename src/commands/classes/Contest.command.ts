@@ -9,6 +9,8 @@ import { ContestData, ContestFile } from './exports';
 import { Message, TextChannel, MessageEmbed } from 'discord.js';
 import { table, getBorderCharacters } from 'table';
 import { ReturnEnvelope } from '../../exports';
+import { map, concatAll } from 'rxjs/operators';
+import { Observable, forkJoin } from 'rxjs';
 
 export default class ContestCommand extends Command {
   public help = "Available Sub-commands for '!Contest': \nStart \nAdd \nVote \nEnd \nReset \nHelp "
@@ -28,9 +30,22 @@ export default class ContestCommand extends Command {
 
     let gDrive = new Drive(); // initialize GDrive object
     gDrive.list(GoogleAuth.authClient, BotConfig.DriveFileID) // Pull files from GDrive
+      .pipe(
+        map((obsList: Array<Observable<ReturnEnvelope>>) => forkJoin(obsList)),
+        concatAll(),
+        map((envList: Array<ReturnEnvelope>) => {
+          let filesObject: {[key: string]: ContestFile} = {};
+          for (const envelope of envList) {
+            filesObject[envelope.data.id] = envelope.data;
+          }
+          return {
+            data: filesObject
+          }
+        })
+      )
       .subscribe({
         next: (value: ReturnEnvelope) => {
-
+          console.log(value);
           let files: {[key: string]: ContestFile} = value.data;
           let pastEntrants = contestData.pastEntries;
           let entryCount;
@@ -128,7 +143,8 @@ export default class ContestCommand extends Command {
           let data: Array<[string, string]> = [];
           let y = 0;
           for(let entry of Object.values(contestData.entries)) {
-            data.push([`${Object.keys(reacts)[y]}`, `[${entry.name}](${entry.webContentLink})\n`]);
+            data.push([`${Object.keys(reacts)[y]}`, `[${entry.name}](${entry.shortlink ? entry.shortlink : entry.webContentLink})\n`]);
+            console.log(`Markdown: [${entry.name}](${entry.shortlink ? entry.shortlink : entry.webContentLink})\n`)
             ++y;
           }
           console.log("Successful");
