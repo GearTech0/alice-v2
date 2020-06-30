@@ -17,9 +17,11 @@
   "author": "Daquaris Chadwick",
   "license": "ISC",
   "dependencies": {
-    "@types/node": "^14.0.13",
+    "@types/node": "^13.13.4",
     "discord.js": "^12.2.0",
     "googleapis": "^52.1.0",
+    "rxjs": "^6.5.5",
+    "shorturl-2": "0.0.7",
     "table": "^5.4.6",
     "valid-url": "^1.0.9"
   }

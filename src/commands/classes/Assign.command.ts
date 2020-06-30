@@ -32,7 +32,21 @@ export default class AssignCommand extends Command {
             addedRoles.push(prevRole[1]);   // Keep previous roles
         }
 
-        for (let roleName of args) {
+        let rolenames: Array<string> = [];
+        let bag: string = "";
+        for (let str of args) {
+            bag += str;
+            
+            if (bag.indexOf(',') !== -1) {
+                bag.replace(',', '');
+                rolenames.push(bag);
+
+                bag = "";
+            }
+        }
+
+        for (let roleName of rolenames) {
+
             try {
                 let role = roles[roleName];
 
