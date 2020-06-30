@@ -1,0 +1,1 @@
+export type GoogleOAuthStatus = 'unverified' | 'verified' | 'error';

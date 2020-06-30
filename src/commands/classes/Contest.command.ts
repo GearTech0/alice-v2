@@ -1,6 +1,5 @@
 import Command from './Command';
 import fs from 'fs';
-import drive from 'googleapis';
 import path from 'path';
 import validUrl from 'valid-url';
 import { v4 as UUID } from 'uuid';
@@ -62,7 +61,7 @@ export default class ContestCommand extends Command {
 		let data: Array<[string, string]> = [];
     	let y = 0;
     	for(let entry of Object.values(files)) {
-      		data.push([`${Object.keys(config.reactions)[y]}`, `[${entry.name}](${entry.url})\n`]);
+      		data.push([`${Object.keys(config.reactions)[y]}`, `[${entry.name}](${entry.webContentLink})\n`]);
 			++y;
 		}
 		let tblConfig = { //  config for Embed table formatting
@@ -171,7 +170,7 @@ export default class ContestCommand extends Command {
 		let announcement = `The sample for our "${contestName}" contest has been chosen!\nShare your track file with "!contest submit ${contestName}" in the comment to enter the contest!`;
 		let mEmbed = new MessageEmbed();
 		mEmbed.setTitle(`${contestName}`);
-		mEmbed.setDescription(`Sample File:  [${winner.file.name}](${winner.file.url})\nVote for your favourite using the reactions!`);
+		mEmbed.setDescription(`Sample File:  [${winner.file.name}](${winner.file.webContentLink})\nVote for your favourite using the reactions!`);
 		let mEmbed2 = new MessageEmbed();
 		mEmbed2.setTitle('Submissions:');
 		let contestMessage = await channel.send(announcement, mEmbed);
@@ -283,7 +282,7 @@ export default class ContestCommand extends Command {
 		message.reply("Your submission has been entered into the contest.");
 
 		try {
-			data.entries[uuid] = {name: fileName, url: fileUrl};
+			data.entries[uuid] = {name: fileName, webContentLink: fileUrl};
 			data.entries[uuid].submitter = submitter.id;
 			fs.writeFileSync(filePath+`/ContestVoteInfo.json`, JSON.stringify(data, null, 2), { flag: 'w' });
 			console.log("Data successfully saved.");
@@ -376,7 +375,7 @@ export default class ContestCommand extends Command {
 		
 		// Edit message from !advance to show contest submissions and voting are closed
 		let voteEmbed = voteMessage.embeds[0];
-		let embedText = `Sample File: [${data.sample.name}](${data.sample.url}) \nSubmissions + Voting Are Closed`;
+		let embedText = `Sample File: [${data.sample.name}](${data.sample.webContentLink}) \nSubmissions + Voting Are Closed`;
 		voteEmbed.setDescription(embedText);
 		let voteMessageText = `The ccontest "${contestName}" is now over! \nCheck the message below for the winners!`;
 		voteMessage.edit(voteMessageText, voteEmbed);
@@ -508,8 +507,5 @@ export default class ContestCommand extends Command {
 		}
 		return;
 	}
-
-	
-
 	
 }

@@ -8,3 +8,4 @@ dist/
 !data/templates
 /secret/*
 npm-debug.log
+bot.config.json
