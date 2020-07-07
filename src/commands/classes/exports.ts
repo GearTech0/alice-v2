@@ -1,7 +1,9 @@
 export interface ContestFile {
   name: string;
-  url: string;
+  webContentLink: string;
   [key: string]: any;
+  shortlink?: string;
+  id?: string;  // Remove optional after fully converting from text files
 }
 
 export interface ContestData {

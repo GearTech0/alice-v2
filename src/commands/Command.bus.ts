@@ -9,21 +9,22 @@ import ListCommand from './classes/List.command';
 import UpdateCommand from './classes/Update.command';
 import ContestCommand from './classes/Contest.command';
 
-class CommandBus {
-    public all: {[key: string]: Command} = {};
-    public publicCommands: {[key: string]: Command} = {};
+export default class CommandBus {
+    public static all: {[key: string]: Command} = {};
+    public static publicCommands: {[key: string]: Command} = {};
 
-    public addHiddenCommand(commandName: string, command: Command) {
+    public static AddHiddenCommand(commandName: string, command: Command) {
         this.all[commandName] = command;
     }
 
-    public addPublicCommand(commandName: string, command: Command) {
+    public static AddPublicCommand(commandName: string, command: Command) {
         this.publicCommands[commandName] = command;
         this.all[commandName] = command;
     }
 
-    public useCommand(commandName: string, args: Array<string>, message: Message) {
+    public static UseCommand(commandName: string, args: Array<string>, message: Message) {
         try {
+            console.log(commandName);
             this.all[commandName].action(args, message);
         } catch (e) {
             if (!e.message.includes("Cannot read property 'action' of undefined")) {
@@ -34,55 +35,51 @@ class CommandBus {
     }
 }
 
-const commandBus = new CommandBus();
-
 /**
  * Command: commands
  * Usage:
  * Permissions: All
  */
-commandBus.addHiddenCommand('commands', new ListCommand);
+CommandBus.AddHiddenCommand('commands', new ListCommand);
 
 /**
  * Command: graduate
  * Usage:
  * Permissions: Admin
  */
-commandBus.addHiddenCommand('graduate', new GraduateCommand);
+CommandBus.AddHiddenCommand('graduate', new GraduateCommand);
 
 /**
  * Command: update
  * Usage:
  * Permissions: Admin
  */
-commandBus.addHiddenCommand('update', new UpdateCommand);
+CommandBus.AddHiddenCommand('update', new UpdateCommand);
 
 /**
  * Command: assign
  * Usage:
  * Permissions: All (conditional)
  */
-commandBus.addPublicCommand('assign', new AssignCommand);
+CommandBus.AddPublicCommand('assign', new AssignCommand);
 
 /**
  * Command: greet
  * Usage: 
  * Permissions: All
  */
-commandBus.addPublicCommand('greet', new GreetCommand);
+CommandBus.AddPublicCommand('greet', new GreetCommand);
 
 /**
  * Command: promote
  * Usage: 
  * Permissions: All
  */
-commandBus.addPublicCommand('promote', new PromoteCommand);
+CommandBus.AddPublicCommand('promote', new PromoteCommand);
 
 /**
  * Command: contest
  * Usage:
  * Permissions: Admin
  */
-commandBus.addPublicCommand('contest', new ContestCommand);
-
-export {commandBus as CommandBus}
+CommandBus.AddHiddenCommand('contest', new ContestCommand);
