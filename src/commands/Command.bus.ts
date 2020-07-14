@@ -30,17 +30,17 @@ export default class CommandBus {
             if (!e.message.includes("Cannot read property 'action' of undefined")) {
                 console.log(e);
             }
-            message.reply(`The command: { ${commandName} } is unavailable.`);
+            message.reply(`The command: { ${commandName} } is unavailable.\nTo see the list of available commands use !list`);
         }
     }
 }
 
 /**
- * Command: commands
+ * Command: list
  * Usage:
  * Permissions: All
  */
-CommandBus.AddHiddenCommand('commands', new ListCommand);
+CommandBus.AddHiddenCommand('list', new ListCommand);
 
 /**
  * Command: graduate

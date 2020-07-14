@@ -13,20 +13,21 @@ import { map, concatAll } from 'rxjs/operators';
 import { Observable, forkJoin } from 'rxjs';
 
 export default class ContestCommand extends Command {
-  public help = "Available Sub-commands for '!Contest': \nStart \nAdd \nVote \nEnd \nReset \nHelp "
+  public readonly HELP_MESSAGE = "Available Sub-commands for '!contest': \nstart \nadd \nvote \nend \nreset \nhelp";
+
+  private readonly CONTEST_DATA_FILE = '../../../data/contestData.json';
+  private readonly VOTING_LIST_FILE = '../../../data/votingList.json';
 
   // Initiate a contest, announcing it to channel
   // This should read through the google drive folder, and choose N sample files in the root folder and save choice somewhere to be used when viewing list
   // Files to be added prior to starting via !Contest add
-  public start(args: Array<string>, message: Message): void{
-    let contestData: ContestData = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/contestData.json")).toString());
-    if(contestData.contestActive){
-      message.reply(`There is already a Contest ongoing. \nCheck <#${contestData.contestChannelId}> to participate!`);
+  public start(args: Array<string>, message: Message): void {
+    let contestData: ContestData = JSON.parse(fs.readFileSync(path.join(__dirname, this.CONTEST_DATA_FILE)).toString());
+    if(contestData.contestActive) {
+      message.reply(`There is already an ongoing contest. \nCheck <#${contestData.contestChannelId}> to participate!`);
       return;
     }
-    console.log("---Contest Creation Started---")
     let reacts = contestData.reactions;
-    let failMes = "Failed to start contest, please try again or contact an Admin.";
 
     let gDrive = new Drive(); // initialize GDrive object
     gDrive.list(GoogleAuth.authClient, BotConfig.DriveFileID) // Pull files from GDrive
@@ -45,202 +46,116 @@ export default class ContestCommand extends Command {
       )
       .subscribe({
         next: (value: ReturnEnvelope) => {
-          console.log(value);
-          let files: {[key: string]: ContestFile} = value.data;
-          let pastEntrants = contestData.pastEntries;
-          let entryCount;
-          let config = { //  config for Embed table formatting
-            border: getBorderCharacters('void'),
-            columnDefault: {
-              paddingLeft: 0,
-              paddingRight: 1
-            },
-            drawHorizontalLine: () => {
-              return false;
-            }
-          };
-      
-      
-          try{
-            let count = args.shift();
-            console.log("count: "+count);
-            if(!count) {throw(new Error);}
-            entryCount = parseInt(count);
-            if(entryCount < 3){
-              console.log("Entry count must be 3 or more.");
-              throw new Error;
-            }
-            console.log("entryCount:  "+entryCount);
-          }
-          catch(e){
-            console.log("Argument for entry count is invalid or not provided, leaving as default value.");
-            entryCount = 5;
-          }
-      
-          console.log("Starting Entry Selection");
-      
-          if(entryCount > Object.keys(reacts).length){  
-            let err = new Error();
-            err.name = "Reaction Limit Error";
-            err.message = "Not enough reactions for chosen entry amount.";
-            throw(err);
-          }
-          console.log("Reaction limit check passed");
-      
-      
-          console.log("Current Applicant count: "+ Object.keys(files).length);
-          console.log("Current Past Entry count: " + Object.keys(pastEntrants).length);
-          if(entryCount > Object.keys(files).length){
-            let err = new Error();
-            err.name = "Entrant Count Error";
-            err.message = "Not enough aplicants to fill entry count.";
-            throw(err);
-          }
-          console.log("Applicant count check passed");
-      
-          for(let uuid in pastEntrants){
-            delete files[uuid];
-          }
-          if(Object.keys(files).length < entryCount) {
-            console.log(`Not enough unused entries, pulling ${entryCount-Object.keys(files).length} from Past Entrants`);
-            while(Object.keys(files).length < entryCount) {
-              let uuid = Object.keys(pastEntrants)[0];
-              files[uuid] = pastEntrants[uuid];
-              delete pastEntrants[uuid];
-            }
-          }else {
-            while(Object.keys(files).length > entryCount) {
-              let fileCount = Object.keys(files).length
-              let dif = fileCount - entryCount;
-              let pos = Math.round(Math.random()*100000)%fileCount;
-              let dfe = fileCount - pos;
-              let num = 0;
-              if( dif == 1 || dfe == 1){
-                num = 1
-              }else{
-                num = Math.round(Math.random()*100000)%(dif >= dfe ? dfe : dif);
-              }
-              for(let x=0; x<num; ++x){
-                let uuid = Object.keys(files)[pos+x];
-                delete files[uuid];
-              }
-            }
-          }
-          console.log("Entrant Selection Successful");
-      
-          contestData.entries = files;
-      
-          console.log("Writing data to file");
           
-          fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"), JSON.stringify(contestData, null, 2),{ flag: 'w' });    
-          console.log("Successful");
-      
-      
-          console.log("Creating announcement string");
-          let announcement = "\n:musical_note::musical_note:Its time for another contest!:musical_note::musical_note: ";
-          announcement += "\nPlace your vote by clicking the corresponding reaction! \n";
-          
-          let data: Array<[string, string]> = [];
-          let y = 0;
-          for(let entry of Object.values(contestData.entries)) {
-            data.push([`${Object.keys(reacts)[y]}`, `[${entry.name}](${entry.shortlink ? entry.shortlink : entry.webContentLink})\n`]);
-            console.log(`Markdown: [${entry.name}](${entry.shortlink ? entry.shortlink : entry.webContentLink})\n`)
-            ++y;
-          }
-          console.log("Successful");
-      
-          console.log("Determining Server 'contests' channel");
           let channel;
-          try {
-            channel = message.guild.channels.cache.find(channel => channel.name === contestData.contestChannelName);
-          } catch (e) {
-            console.error("Error! Could not find contest channel!: "+e);
-            message.reply("Server contests channel not found, contact Admin");
+          channel = message.guild.channels.cache.find(channel => channel.name === contestData.contestChannelName);
+          if(channel == undefined) {
+            console.log('Error! Could not find contest channel named!: ' + contestData.contestChannelName);
+            message.reply('Server contests channel not found, contact Admin');
             return;
           }
-          console.log("Successful");
+
+          let files: {[key: string]: ContestFile} = value.data;
+          let pastEntrants = contestData.pastEntries;
+          let submissions = 5;
       
-          console.log("Sending announcement");
+          var count = args.shift();
+          submissions = count != undefined ? parseInt(count) : submissions;
+          if(submissions < 3) {
+            message.reply('You need at least 3 submissions to start a contest.');
+            return;
+          }
+
+          if(submissions > Object.keys(files).length) {
+            message.reply('Not enough aplicants to fill submission count.');
+            return;
+          }
       
-          let tbl = table(data, config);
-          console.log(tbl);
-          let mEmbed = new MessageEmbed().addField("Contest Entries", tbl);
-          channel.send(announcement, {embed: mEmbed}).then(async function (message: Message){
+          for(let uuid in pastEntrants) {
+            delete files[uuid];
+          }
+
+          if(Object.keys(files).length < submissions) {
+            for (let i = 0; Object.keys(files).length < submissions; i++) {
+              let uuid = Object.keys(pastEntrants)[i];
+              files[uuid] = pastEntrants[uuid];
+            }
+          } else {
+            let pickedFiles: {[key: string]: ContestFile} = {};
+            for(let i = 0; i < submissions; i++) {
+              let fileCount = Object.keys(files).length
+              let uuid = Object.keys(files)[Math.round(Math.random() * 100000) % fileCount];
+
+              pickedFiles[uuid] = files[uuid];
+              delete files[uuid];
+            }
+            files = pickedFiles;
+          }
+      
+          contestData.entries = files;
+          contestData.contestActive = true;
+          fs.writeFileSync(path.join(__dirname, this.CONTEST_DATA_FILE), JSON.stringify(contestData, null, 2), { flag: 'w' });    
+      
+          let announcement = '\n:musical_note::musical_note:Its time for another contest!:musical_note::musical_note: ';
+          announcement += '\nPlace your vote by clicking the corresponding reaction! \n';
+          
+          let mEmbed = this.createContestStartAnnouncement(contestData);
+
+          channel.send(announcement, {embed: mEmbed}).then(async (message: Message) => {
             
             contestData.messageId = message.id;
           
-            for(let x =0; x < entryCount; ++x) {
-              await message.react(Object.values(reacts)[x] as any);
+            for(let i = 0; i < submissions; ++i) {
+              await message.react(Object.values(reacts)[i] as any);
             }
             
             contestData.contestChannelId = message.channel.id;
-            fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"), JSON.stringify(contestData, null, 2),{ flag: 'w' });
-            return;
-          }).catch(function (e){
-            console.error("Error creating contest message!"+e);
-            return;
-          });
-          console.log("Successful");
-      
-          contestData.contestActive = true;
-          console.log("Writing data to file");
-          fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"), JSON.stringify(contestData, null, 2),{ flag: 'w' });
-          console.log("Contest Data successfully written to file.");
-      
-          console.log("---Contest Successfully Started---");
-          message.reply("Contest has been started!");
+            fs.writeFileSync(path.join(__dirname, this.CONTEST_DATA_FILE), JSON.stringify(contestData, null, 2), { flag: 'w' });
+          })
+          .catch((e: Error) => console.log(e));
+
+          message.reply('Contest has been started!');
           return;
         }
       });
     
   }
 
-  // Add sample file o GDrive to be used for Contest
-  // Can be added to at any time, sounds files to be stored in gdrive
-  public add(args: Array<string>, message: Message): void{
+  // Add sample file to GDrive to be used for Contest
+  // Can be used at any time
+  public add(args: Array<string>, message: Message): void {
     
     let contestSamples = {samples: []};
     
-    try {
-      //check that there is any previous data
-      let data = fs.readFileSync(path.join(__dirname, '../../../data/votingList.json'));
-      if (data) {
-        contestSamples = JSON.parse(data.toString());
-      }
-    } catch (e) {
-
-    } finally {
-      let url = args.join(' ');
-      if (validUrl.isUri(url)) {
-        contestSamples.samples.push(url);
-        fs.writeFileSync(path.join(__dirname, '../../../data/votingList.json'), JSON.stringify(contestSamples), { flag: 'w' });
-  
-        message.reply(`${url} has been added to the voting list. (◕‿◕✿)`)
-      } else {
-        message.reply('This is not a valid URL. Sorry. ༼☯﹏☯༽ \n\nIf you think this is an error, please let a Moderator or the Server Owner know.');
-        console.error(`ERROR: ${url} is not a valid url`);
-      }
+    //check that there is any previous data
+    let data = fs.readFileSync(path.join(__dirname, this.VOTING_LIST_FILE));
+    if (data) {
+      contestSamples = JSON.parse(data.toString());
     }
 
+    let url = args.join(' ');
+    if (validUrl.isUri(url)) {
+      contestSamples.samples.push(url);
+      fs.writeFileSync(path.join(__dirname, this.VOTING_LIST_FILE), JSON.stringify(contestSamples), { flag: 'w' });
+
+      message.reply(`${url} has been added to the voting list. (◕‿◕✿)`)
+    } else {
+      message.reply('This is not a valid URL. Sorry. ༼☯﹏☯༽ \n\nIf you think this is an error, please let a Moderator or the Server Owner know.');
+    }
   }
 
   // Tally vote and announce top 3(can be more in case of ties) as winners of Contest
   // Winners get saved as Past Entries to be excluded from applicant pool in future contests
-  public end(args: Array<string>, message: Message): void{ 
-    let contestData: ContestData = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/contestData.json")).toString());
+  public end(args: Array<string>, message: Message): void { 
+    let contestData: ContestData = JSON.parse(fs.readFileSync(path.join(__dirname, this.CONTEST_DATA_FILE)).toString());
     if(contestData.contestActive){
-      console.log("---Ending Contest---");
-      let reaction_numbers = ["\u0030\u20E3","\u0031\u20E3","\u0032\u20E3","\u0033\u20E3","\u0034\u20E3","\u0035\u20E3", "\u0036\u20E3","\u0037\u20E3","\u0038\u20E3","\u0039\u20E3"];
+      let reaction_numbers = ['\u0030\u20E3','\u0031\u20E3','\u0032\u20E3','\u0033\u20E3','\u0034\u20E3','\u0035\u20E3', '\u0036\u20E3','\u0037\u20E3','\u0038\u20E3','\u0039\u20E3'];
       let files = contestData.entries;
-      console.log("Determining contest channel");
       let contestChannel = message.guild.channels.cache.find((channel) => channel.name === contestData.contestChannelName) as TextChannel;
-      console.log("Successful");
       
-      console.log("Determining Contest origin message");
       contestChannel.messages.fetch(contestData.messageId).then(contestMessage => {
         
         let reactions = contestMessage.reactions.cache;
-        console.log("Successful");
         let reacEmoji = [];
         let reacCount = [];
         for (let reaction of reactions){
@@ -249,7 +164,7 @@ export default class ContestCommand extends Command {
           if(reacCount.length >= Object.keys(files).length){ break; }
         }
 
-        console.log("Determining winners");
+        // Determining winners
         let winners = [];
         while(winners.length < 3 && (winners.length < reacCount.length)){
           let max = 0;
@@ -260,108 +175,117 @@ export default class ContestCommand extends Command {
           while(reacCount.includes(max)){
             let winner = {};
             let x = reacCount.indexOf(max);
-            winner["emoji"] = reacEmoji[x];
-            winner["votes"] = reacCount[x];
+            winner['emoji'] = reacEmoji[x];
+            winner['votes'] = reacCount[x];
             let fileUUID = Object.keys(files)[x];
-            winner["file"] = Object.assign(new Object, files[fileUUID]);
-            winner["UUID"] = fileUUID;
+            winner['file'] = Object.assign(new Object, files[fileUUID]);
+            winner['UUID'] = fileUUID;
             delete files[fileUUID];
-            reacEmoji.splice(x,1);
-            reacCount.splice(x,1);
+            reacEmoji.splice(x, 1);
+            reacCount.splice(x, 1);
             winners.push(winner);
           }
 
         }
-        console.log("Successful");
 
-        console.log("Creating announcement message");
-        let places = ["1st Place", "2nd Place", "3rd Place"];
+        // Creating announcement message
+        let places = ['1st Place', '2nd Place', '3rd Place'];
         let mEmbed = new MessageEmbed();
-        let announcement = "\nThe contest has ended and our winners are: "
-        for(let x=0; x<winners.length; ++x){
-          let names = "";
+        let announcement = '\nThe contest has ended and our winners are: '
+        for(let x = 0; x < winners.length; ++x) {
+          let names = '';
           let place = places[x];
           names += `[${winners[x].file.name}](${winners[x].file.url})\n`;
-          while((x+1 < winners.length) && (winners[x].votes == winners[x+1].votes)){
+
+          while(x + 1 < winners.length && winners[x].votes == winners[x + 1].votes) {
             ++x;
             names += `[${winners[x].file.name}](${winners[x].file.url})\n`;
           }
           mEmbed.addField(`${place} | ${winners[x].votes} votes`, names);
       
         }
-        mEmbed.addField(":tada:CONGRATULATIONS:tada:", "\nLook forward to our next contest!");
-        console.log('Successful');
+        mEmbed.addField(':tada:CONGRATULATIONS:tada:', '\nLook forward to our next contest!');
         
-        for(let x=0; x<winners.length; ++x){
-
+        for(let x=0; x<winners.length; ++x) {
           contestData.pastEntries[winners[x].UUID] = Object.assign(new Object, winners[x].file);
         }
-        console.log("Writing contestData to file");
         contestData.contestActive = false;
-        fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json") ,JSON.stringify(contestData, null, 2),{ flag: 'w' });
-        console.log("Successful");
+
+        fs.writeFileSync(path.join(__dirname,this.CONTEST_DATA_FILE) ,JSON.stringify(contestData, null, 2),{ flag: 'w' });
 
         contestChannel.send(announcement, {embed: mEmbed});
-
-        console.log("Contest has been Ended");
-        return;
-      }).catch(e => {
-        console.error("Contest End Failed: "+e);
-        return;
-      });
+      })
+      .catch(e => console.info(e));
     }
     else{
-      console.log("No contest to end.");
-      message.reply("There is not an active contest.");
+      message.reply('There is not an active contest.');
     }
     
     return;
   }
 
-  public helpAction(args: Array<string>, message: Message): void{
-    message.reply(this.help);
+  public helpAction(args: Array<string>, message: Message): void {
+    message.reply(this.HELP_MESSAGE);
     return;
   }
 
   // Clear Past Entrants data to add them back to applicant pool
   public reset(){
-    let contestData = JSON.parse(fs.readFileSync(path.join(__dirname, "../../../data/contestData.json")).toString());
-    console.log("Clearing Past Entrant records");
+    let contestData = JSON.parse(fs.readFileSync(path.join(__dirname, this.CONTEST_DATA_FILE)).toString());
+    console.log('Clearing Past Entrant records');
     for(let entry in contestData.pastEntries){
       delete contestData.pastEntries[entry];
     }
     try{
-      fs.writeFileSync(path.join(__dirname,"../../../data/contestData.json"), JSON.stringify(contestData, null, 2),{ flag: 'w' });
+      fs.writeFileSync(path.join(__dirname, this.CONTEST_DATA_FILE), JSON.stringify(contestData, null, 2),{ flag: 'w' });
     }
     catch(e){
-      console.error("Warning! Failure writing contest data to file after !contest reset!: "+e);
+      console.error('Warning! Failure writing contest data to file after !contest reset!: ' + e);
       return;
     }
     return;
   }
 
-  public action(args: Array<string>, message: Message): void{
+  public action(args: Array<string>, message: Message): void {
     
-    if(args[0] === undefined) { message.reply("Please enter Sub-command: ex '!Contest help'")}
+    if(args[0] === undefined) { message.reply("Please enter Sub-command: ex '!contest help'")}
     else
     {
       let func = args.shift().toLowerCase();
-      if(func === "help") { func = "helpAction";}
-      try{
+      if(func === 'help') { func = 'helpAction';}
+      try {
           this[func](args, message);
       }
       catch (Error) {
           if (Error.name === 'TypeError') { 
-            console.error("Invalid Command"); console.error(Error.name+": " + Error.message); 
-            message.reply("Invalid Sub-command. Please refer to !Contest help for list of Sub-commands and their use.");
+            message.reply('Invalid sub-command. Please use "!contest help" for list of sub-commands.');
           } 
-            else {console.error(Error.name+": " + Error.message); }
-          }
+          else {console.error(Error.name+': ' + Error.message); }
+      }
     }
     return;
   }
 
-  
+  private createContestStartAnnouncement(contestData: ContestData): MessageEmbed{
+    let config = {
+      border: getBorderCharacters('void'),
+      columnDefault: {
+        paddingLeft: 0,
+        paddingRight: 1
+      },
+      drawHorizontalLine: () => {
+        return false;
+      }
+    };
 
-  
+    let data: Array<[string, string]> = [];
+    let y = 0;
+    for(let entry of Object.values(contestData.entries)) {
+      data.push([`${Object.keys(contestData.reactions)[y]}`, `[${entry.name}](${entry.shortlink ? entry.shortlink : entry.webContentLink})\n`]);
+      ++y;
+    }
+      
+    let tbl = table(data, config);
+    return new MessageEmbed().addField('Contest Submissions', tbl);
+  }
 }
