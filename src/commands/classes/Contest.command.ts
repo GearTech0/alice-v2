@@ -80,7 +80,8 @@ export default class ContestCommand extends Command {
               let uuid = Object.keys(pastEntrants)[i];
               files[uuid] = pastEntrants[uuid];
             }
-          } else {
+          }
+          else {
             let pickedFiles: {[key: string]: ContestFile} = {};
             for(let i = 0; i < submissions; i++) {
               let fileCount = Object.keys(files).length
@@ -139,7 +140,8 @@ export default class ContestCommand extends Command {
       fs.writeFileSync(path.join(__dirname, this.VOTING_LIST_FILE), JSON.stringify(contestSamples), { flag: 'w' });
 
       message.reply(`${url} has been added to the voting list. (◕‿◕✿)`)
-    } else {
+    }
+    else {
       message.reply('This is not a valid URL. Sorry. ༼☯﹏☯༽ \n\nIf you think this is an error, please let a Moderator or the Server Owner know.');
     }
   }
@@ -148,7 +150,7 @@ export default class ContestCommand extends Command {
   // Winners get saved as Past Entries to be excluded from applicant pool in future contests
   public end(args: Array<string>, message: Message): void { 
     let contestData: ContestData = JSON.parse(fs.readFileSync(path.join(__dirname, this.CONTEST_DATA_FILE)).toString());
-    if(contestData.contestActive){
+    if(contestData.contestActive) {
       let reaction_numbers = ['\u0030\u20E3','\u0031\u20E3','\u0032\u20E3','\u0033\u20E3','\u0034\u20E3','\u0035\u20E3', '\u0036\u20E3','\u0037\u20E3','\u0038\u20E3','\u0039\u20E3'];
       let files = contestData.entries;
       let contestChannel = message.guild.channels.cache.find((channel) => channel.name === contestData.contestChannelName) as TextChannel;
@@ -158,7 +160,7 @@ export default class ContestCommand extends Command {
         let reactions = contestMessage.reactions.cache;
         let reacEmoji = [];
         let reacCount = [];
-        for (let reaction of reactions){
+        for (let reaction of reactions) {
           reacEmoji.push(reaction[1].emoji);
           reacCount.push(reaction[1].count);
           if(reacCount.length >= Object.keys(files).length){ break; }
@@ -166,23 +168,23 @@ export default class ContestCommand extends Command {
 
         // Determining winners
         let winners = [];
-        while(winners.length < 3 && (winners.length < reacCount.length)){
+        while(winners.length < 3 && (winners.length < reacCount.length)) {
           let max = 0;
-          for(let x of reacCount){
-            max = x > max ? x : max;
+          for(let i of reacCount) {
+            max = i > max ? i : max;
           }
           
-          while(reacCount.includes(max)){
+          while(reacCount.includes(max)) {
             let winner = {};
-            let x = reacCount.indexOf(max);
-            winner['emoji'] = reacEmoji[x];
-            winner['votes'] = reacCount[x];
-            let fileUUID = Object.keys(files)[x];
+            let i = reacCount.indexOf(max);
+            winner['emoji'] = reacEmoji[i];
+            winner['votes'] = reacCount[i];
+            let fileUUID = Object.keys(files)[i];
             winner['file'] = Object.assign(new Object, files[fileUUID]);
             winner['UUID'] = fileUUID;
             delete files[fileUUID];
-            reacEmoji.splice(x, 1);
-            reacCount.splice(x, 1);
+            reacEmoji.splice(i, 1);
+            reacCount.splice(i, 1);
             winners.push(winner);
           }
 
@@ -192,32 +194,32 @@ export default class ContestCommand extends Command {
         let places = ['1st Place', '2nd Place', '3rd Place'];
         let mEmbed = new MessageEmbed();
         let announcement = '\nThe contest has ended and our winners are: '
-        for(let x = 0; x < winners.length; ++x) {
+        for(let i = 0; i < winners.length; ++i) {
           let names = '';
-          let place = places[x];
-          names += `[${winners[x].file.name}](${winners[x].file.url})\n`;
+          let place = places[i];
+          names += `[${winners[i].file.name}](${winners[i].file.url})\n`;
 
-          while(x + 1 < winners.length && winners[x].votes == winners[x + 1].votes) {
-            ++x;
-            names += `[${winners[x].file.name}](${winners[x].file.url})\n`;
+          while(i + 1 < winners.length && winners[i].votes == winners[i + 1].votes) {
+            ++i;
+            names += `[${winners[i].file.name}](${winners[i].file.url})\n`;
           }
-          mEmbed.addField(`${place} | ${winners[x].votes} votes`, names);
+          mEmbed.addField(`${place} | ${winners[i].votes} votes`, names);
       
         }
         mEmbed.addField(':tada:CONGRATULATIONS:tada:', '\nLook forward to our next contest!');
         
-        for(let x=0; x<winners.length; ++x) {
-          contestData.pastEntries[winners[x].UUID] = Object.assign(new Object, winners[x].file);
+        for(let i = 0; i < winners.length; ++i) {
+          contestData.pastEntries[winners[i].UUID] = Object.assign(new Object, winners[i].file);
         }
         contestData.contestActive = false;
 
-        fs.writeFileSync(path.join(__dirname,this.CONTEST_DATA_FILE) ,JSON.stringify(contestData, null, 2),{ flag: 'w' });
+        fs.writeFileSync(path.join(__dirname,this.CONTEST_DATA_FILE), JSON.stringify(contestData, null, 2),{ flag: 'w' });
 
         contestChannel.send(announcement, {embed: mEmbed});
       })
       .catch(e => console.info(e));
     }
-    else{
+    else {
       message.reply('There is not an active contest.');
     }
     
@@ -230,7 +232,7 @@ export default class ContestCommand extends Command {
   }
 
   // Clear Past Entrants data to add them back to applicant pool
-  public reset(){
+  public reset() {
     let contestData = JSON.parse(fs.readFileSync(path.join(__dirname, this.CONTEST_DATA_FILE)).toString());
     console.log('Clearing Past Entrant records');
     for(let entry in contestData.pastEntries){
@@ -248,9 +250,10 @@ export default class ContestCommand extends Command {
 
   public action(args: Array<string>, message: Message): void {
     
-    if(args[0] === undefined) { message.reply("Please enter Sub-command: ex '!contest help'")}
-    else
-    {
+    if(args[0] === undefined) {
+      message.reply("Please enter Sub-command: ex '!contest help'")
+    }
+    else {
       let func = args.shift().toLowerCase();
       if(func === 'help') { func = 'helpAction';}
       try {
@@ -260,7 +263,9 @@ export default class ContestCommand extends Command {
           if (Error.name === 'TypeError') { 
             message.reply('Invalid sub-command. Please use "!contest help" for list of sub-commands.');
           } 
-          else {console.error(Error.name+': ' + Error.message); }
+          else {
+            console.error(`${Error.name}: ${Error.message}`); 
+          }
       }
     }
     return;
@@ -279,10 +284,10 @@ export default class ContestCommand extends Command {
     };
 
     let data: Array<[string, string]> = [];
-    let y = 0;
+    let i = 0;
     for(let entry of Object.values(contestData.entries)) {
-      data.push([`${Object.keys(contestData.reactions)[y]}`, `[${entry.name}](${entry.shortlink ? entry.shortlink : entry.webContentLink})\n`]);
-      ++y;
+      data.push([`${Object.keys(contestData.reactions)[i]}`, `[${entry.name}](${entry.shortlink ? entry.shortlink : entry.webContentLink})\n`]);
+      ++i;
     }
       
     let tbl = table(data, config);
