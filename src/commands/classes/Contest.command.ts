@@ -23,7 +23,7 @@ export default class ContestCommand extends Command {
   // Files to be added prior to starting via !Contest add
   public start(args: Array<string>, message: Message): void {
     let contestData: ContestData = JSON.parse(fs.readFileSync(path.join(__dirname, this.CONTEST_DATA_FILE)).toString());
-    if(contestData.contestActive) {
+    if (contestData.contestActive) {
       message.reply(`There is already an ongoing contest. \nCheck <#${contestData.contestChannelId}> to participate!`);
       return;
     }
@@ -49,7 +49,7 @@ export default class ContestCommand extends Command {
           
           let channel;
           channel = message.guild.channels.cache.find(channel => channel.name === contestData.contestChannelName);
-          if(channel == undefined) {
+          if (channel == undefined) {
             console.log('Error! Could not find contest channel named!: ' + contestData.contestChannelName);
             message.reply('Server contests channel not found, contact Admin');
             return;
@@ -61,21 +61,21 @@ export default class ContestCommand extends Command {
       
           var count = args.shift();
           submissions = count != undefined ? parseInt(count) : submissions;
-          if(submissions < 3) {
+          if (submissions < 3) {
             message.reply('You need at least 3 submissions to start a contest.');
             return;
           }
 
-          if(submissions > Object.keys(files).length) {
+          if (submissions > Object.keys(files).length) {
             message.reply('Not enough aplicants to fill submission count.');
             return;
           }
       
-          for(let uuid in pastEntrants) {
+          for (let uuid in pastEntrants) {
             delete files[uuid];
           }
 
-          if(Object.keys(files).length < submissions) {
+          if (Object.keys(files).length < submissions) {
             for (let i = 0; Object.keys(files).length < submissions; i++) {
               let uuid = Object.keys(pastEntrants)[i];
               files[uuid] = pastEntrants[uuid];
@@ -83,7 +83,7 @@ export default class ContestCommand extends Command {
           }
           else {
             let pickedFiles: {[key: string]: ContestFile} = {};
-            for(let i = 0; i < submissions; i++) {
+            for (let i = 0; i < submissions; i++) {
               let fileCount = Object.keys(files).length
               let uuid = Object.keys(files)[Math.round(Math.random() * 100000) % fileCount];
 
@@ -106,7 +106,7 @@ export default class ContestCommand extends Command {
             
             contestData.messageId = message.id;
           
-            for(let i = 0; i < submissions; ++i) {
+            for (let i = 0; i < submissions; ++i) {
               await message.react(Object.values(reacts)[i] as any);
             }
             
@@ -150,7 +150,7 @@ export default class ContestCommand extends Command {
   // Winners get saved as Past Entries to be excluded from applicant pool in future contests
   public end(args: Array<string>, message: Message): void { 
     let contestData: ContestData = JSON.parse(fs.readFileSync(path.join(__dirname, this.CONTEST_DATA_FILE)).toString());
-    if(contestData.contestActive) {
+    if (contestData.contestActive) {
       let reaction_numbers = ['\u0030\u20E3','\u0031\u20E3','\u0032\u20E3','\u0033\u20E3','\u0034\u20E3','\u0035\u20E3', '\u0036\u20E3','\u0037\u20E3','\u0038\u20E3','\u0039\u20E3'];
       let files = contestData.entries;
       let contestChannel = message.guild.channels.cache.find((channel) => channel.name === contestData.contestChannelName) as TextChannel;
@@ -163,18 +163,18 @@ export default class ContestCommand extends Command {
         for (let reaction of reactions) {
           reacEmoji.push(reaction[1].emoji);
           reacCount.push(reaction[1].count);
-          if(reacCount.length >= Object.keys(files).length){ break; }
+          if (reacCount.length >= Object.keys(files).length){ break; }
         }
 
         // Determining winners
         let winners = [];
-        while(winners.length < 3 && (winners.length < reacCount.length)) {
+        while (winners.length < 3 && (winners.length < reacCount.length)) {
           let max = 0;
-          for(let i of reacCount) {
+          for (let i of reacCount) {
             max = i > max ? i : max;
           }
           
-          while(reacCount.includes(max)) {
+          while (reacCount.includes(max)) {
             let winner = {};
             let i = reacCount.indexOf(max);
             winner['emoji'] = reacEmoji[i];
@@ -194,12 +194,12 @@ export default class ContestCommand extends Command {
         let places = ['1st Place', '2nd Place', '3rd Place'];
         let mEmbed = new MessageEmbed();
         let announcement = '\nThe contest has ended and our winners are: '
-        for(let i = 0; i < winners.length; ++i) {
+        for (let i = 0; i < winners.length; ++i) {
           let names = '';
           let place = places[i];
           names += `[${winners[i].file.name}](${winners[i].file.url})\n`;
 
-          while(i + 1 < winners.length && winners[i].votes == winners[i + 1].votes) {
+          while (i + 1 < winners.length && winners[i].votes == winners[i + 1].votes) {
             ++i;
             names += `[${winners[i].file.name}](${winners[i].file.url})\n`;
           }
@@ -208,7 +208,7 @@ export default class ContestCommand extends Command {
         }
         mEmbed.addField(':tada:CONGRATULATIONS:tada:', '\nLook forward to our next contest!');
         
-        for(let i = 0; i < winners.length; ++i) {
+        for (let i = 0; i < winners.length; ++i) {
           contestData.pastEntries[winners[i].UUID] = Object.assign(new Object, winners[i].file);
         }
         contestData.contestActive = false;
@@ -235,7 +235,7 @@ export default class ContestCommand extends Command {
   public reset() {
     let contestData = JSON.parse(fs.readFileSync(path.join(__dirname, this.CONTEST_DATA_FILE)).toString());
     console.log('Clearing Past Entrant records');
-    for(let entry in contestData.pastEntries){
+    for (let entry in contestData.pastEntries){
       delete contestData.pastEntries[entry];
     }
     try{
@@ -250,12 +250,12 @@ export default class ContestCommand extends Command {
 
   public action(args: Array<string>, message: Message): void {
     
-    if(args[0] === undefined) {
+    if (args[0] === undefined) {
       message.reply("Please enter Sub-command: ex '!contest help'")
     }
     else {
       let func = args.shift().toLowerCase();
-      if(func === 'help') { func = 'helpAction';}
+      if (func === 'help') { func = 'helpAction';}
       try {
           this[func](args, message);
       }
@@ -285,7 +285,7 @@ export default class ContestCommand extends Command {
 
     let data: Array<[string, string]> = [];
     let i = 0;
-    for(let entry of Object.values(contestData.entries)) {
+    for (let entry of Object.values(contestData.entries)) {
       data.push([`${Object.keys(contestData.reactions)[i]}`, `[${entry.name}](${entry.shortlink ? entry.shortlink : entry.webContentLink})\n`]);
       ++i;
     }
