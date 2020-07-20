@@ -5,7 +5,7 @@ export default class GreetCommand extends Command {
     public help = "Help for 'Greet Command': no arguments are needed for this command.";
     action(args: string[], message: Message): void {
         try {
-            args[0] = args[0].toLowerCase()
+            args[0] = args[0] !== undefined ? args[0].toLowerCase() : "";
             if (args[0] === "help") {
                 message.reply(this.help);
                 return;
@@ -15,6 +15,6 @@ export default class GreetCommand extends Command {
             console.error(err);
         }
         
-        message.reply("hello :)");
+        message.reply("hello :))");
     }
 }
